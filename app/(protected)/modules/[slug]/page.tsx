@@ -16,21 +16,15 @@ function statusBadge(status: LessonStatus) {
   switch (status) {
     case "completed":
       return (
-        <span className="inline-flex items-center rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-          Completed
-        </span>
+        <span className="cb-badge cb-badge-completed">Completed</span>
       );
     case "available":
       return (
-        <span className="inline-flex items-center rounded-md bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
-          Available
-        </span>
+        <span className="cb-badge cb-badge-available">Available</span>
       );
     case "locked":
       return (
-        <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
-          Locked
-        </span>
+        <span className="cb-badge cb-badge-locked">Locked</span>
       );
   }
 }
@@ -64,22 +58,20 @@ export default async function ModuleDetailPage({ params }: Props) {
       <div className="space-y-6">
         <Link
           href="/modules"
-          className="text-sm font-medium text-stone-600 hover:text-stone-900"
+          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
           ← Modules
         </Link>
-        <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-xl font-semibold text-stone-900">
-            Module locked
+        <div className="cb-panel p-8 text-center">
+          <div className="cb-eyebrow">Module locked</div>
+          <h1 className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-50">
+            Unlock your next block
           </h1>
-          <p className="mt-2 text-stone-600">
+          <p className="mt-2 cb-caption">
             Pass the previous module&apos;s exam to unlock this module.
           </p>
-          <Link
-            href="/modules"
-            className="mt-6 inline-block rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
-          >
-            Back to modules
+          <Link href="/modules" className="mt-6 cb-btn cb-btn-primary">
+            Back to modules <span aria-hidden>→</span>
           </Link>
         </div>
       </div>
@@ -91,63 +83,90 @@ export default async function ModuleDetailPage({ params }: Props) {
       <div>
         <Link
           href="/modules"
-          className="text-sm font-medium text-stone-600 hover:text-stone-900"
+          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
           ← Modules
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-stone-900">
+        <div className="cb-eyebrow mt-4">
+          Module {moduleData.order_index}
+        </div>
+        <h1 className="mt-2 text-3xl sm:text-4xl font-semibold text-stone-900 dark:text-stone-50 tracking-tight uppercase">
           {moduleData.title}
         </h1>
         {moduleData.description && (
-          <p className="mt-2 text-stone-600">{moduleData.description}</p>
+          <p className="mt-2 cb-body max-w-3xl">{moduleData.description}</p>
         )}
       </div>
 
       <section>
-        <h2 className="text-lg font-semibold text-stone-900 mb-4">Lessons</h2>
+        <div className="flex items-end justify-between gap-4 mb-4">
+          <div>
+            <div className="cb-eyebrow">Lessons</div>
+            <div className="mt-2 cb-h2">Your session sequence</div>
+          </div>
+          <div className="hidden sm:block cb-caption">
+            Work through in order. Status updates after completion.
+          </div>
+        </div>
         {lessons.length === 0 ? (
-          <p className="rounded-2xl border border-stone-200 bg-white p-6 text-stone-600 text-sm">
-            No lessons in this module yet.
-          </p>
+          <div className="cb-panel p-6">
+            <div className="cb-caption">No lessons in this module yet.</div>
+          </div>
         ) : (
           <ul className="space-y-3">
             {lessonsWithStatusList.map((lesson) => {
               const isLocked = lesson.status === "locked";
               return (
-                <li
-                  key={lesson.id}
-                  className={`flex items-start gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm ${
-                    isLocked ? "opacity-75" : ""
-                  }`}
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-sm font-medium text-stone-700">
-                    {lesson.order_index}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    {isLocked ? (
-                      <h3 className="font-medium text-stone-500">
-                        {lesson.title}
-                      </h3>
-                    ) : (
-                      <Link
-                        href={`/lessons/${lesson.slug}`}
-                        className="font-medium text-stone-900 hover:text-stone-700 hover:underline"
-                      >
-                        {lesson.title}
-                      </Link>
-                    )}
-                    {lesson.description && (
-                      <p className="mt-1 text-sm text-stone-600 line-clamp-2">
-                        {lesson.description}
-                      </p>
-                    )}
-                    <div className="mt-2">{statusBadge(lesson.status)}</div>
-                  </div>
-                  {!isLocked && (
-                    <span className="text-sm text-stone-500">
-                      {lesson.status === "completed" ? "View" : "Start"} →
-                    </span>
-                  )}
+                <li key={lesson.id} className={isLocked ? "opacity-50" : ""}>
+                  <Link
+                    href={`/lessons/${lesson.slug}`}
+                    className={[
+                      "cb-panel block p-4 sm:p-5 transition-colors focus:outline-none",
+                      isLocked
+                        ? "hover:bg-white/60 dark:hover:bg-white/10"
+                        : "hover:bg-white/80 dark:hover:bg-white/5",
+                      "focus:ring-2 focus:ring-stone-900/10",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start justify-between gap-6">
+                      <div className="flex items-start gap-4 min-w-0">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-sm font-semibold text-stone-800 dark:bg-white/10 dark:text-stone-200">
+                          {lesson.order_index}
+                        </span>
+                        <div className="min-w-0">
+                          <h3
+                            className={[
+                              "font-semibold leading-snug",
+                              isLocked
+                                ? "text-stone-600 dark:text-stone-400"
+                                : "text-stone-900 dark:text-stone-50",
+                            ].join(" ")}
+                          >
+                            {lesson.title}
+                          </h3>
+                          {lesson.description && (
+                            <p className="cb-caption mt-1 line-clamp-2">
+                              {lesson.description}
+                            </p>
+                          )}
+                          <div className="mt-3">{statusBadge(lesson.status)}</div>
+                        </div>
+                      </div>
+
+                      <div className="pt-1">
+                        <span
+                          className={[
+                            "text-sm font-semibold",
+                            isLocked
+                              ? "text-stone-500 dark:text-stone-400"
+                              : "text-stone-800 dark:text-stone-200",
+                          ].join(" ")}
+                        >
+                          <span aria-hidden>→</span>
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
                 </li>
               );
             })}
@@ -156,31 +175,34 @@ export default async function ModuleDetailPage({ params }: Props) {
       </section>
 
       {exam && (
-        <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-stone-900">
-            Module exam
-          </h2>
+        <section className="cb-panel p-6 sm:p-7">
+          <div className="cb-eyebrow">Milestone</div>
+          <h2 className="mt-2 cb-h2">Module exam</h2>
+
           {hasPassedThisExam ? (
-            <p className="mt-2 text-stone-600">
-              You have passed this exam. You can retake it if you want.
+            <p className="mt-2 cb-body max-w-2xl">
+              You passed this exam. Retake it when you want to tighten your
+              certification.
             </p>
           ) : !examUnlocked ? (
-            <p className="mt-2 text-stone-600">
+            <p className="mt-2 cb-body max-w-2xl">
               Complete all lessons in this module to unlock the exam.
             </p>
           ) : null}
+
           {examUnlocked ? (
             <Link
               href={`/modules/${moduleData.slug}/exam`}
-              className="mt-4 inline-flex rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+              className="mt-5 cb-btn cb-btn-primary"
             >
-              {hasPassedThisExam ? "Retake exam" : "Take exam"}
+              {hasPassedThisExam ? "Retake exam" : "Take exam"}{" "}
+              <span aria-hidden>→</span>
             </Link>
           ) : (
             <button
               type="button"
               disabled
-              className="mt-4 inline-flex cursor-not-allowed rounded-xl bg-stone-200 px-4 py-2 text-sm font-medium text-stone-500"
+              className="mt-5 cb-btn cb-btn-secondary opacity-60 cursor-not-allowed"
             >
               Exam locked
             </button>

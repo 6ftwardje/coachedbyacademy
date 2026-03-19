@@ -27,9 +27,9 @@ export function MarkCompleteButton({ lessonId }: { lessonId: number }) {
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className="inline-flex items-center rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-60"
+        className="cb-btn cb-btn-primary inline-flex disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
       >
-        {loading ? "Saving…" : "Mark as completed"}
+        {loading ? "Saving…" : "Mark lesson complete"}
       </button>
       {error && (
         <p className="mt-2 text-sm text-red-600" role="alert">

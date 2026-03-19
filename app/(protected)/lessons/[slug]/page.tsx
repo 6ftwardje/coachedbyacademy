@@ -51,22 +51,20 @@ export default async function LessonPage({ params }: Props) {
       <div className="space-y-6">
         <Link
           href={`/modules/${moduleData.slug}`}
-          className="text-sm font-medium text-stone-600 hover:text-stone-900"
+          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
           ← {moduleData.title}
         </Link>
-        <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-xl font-semibold text-stone-900">
-            Lesson locked
+        <div className="cb-panel p-8 text-center">
+          <div className="cb-eyebrow">Lesson locked</div>
+          <h1 className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-50">
+            Earn your access
           </h1>
-          <p className="mt-2 text-stone-600">
+          <p className="mt-2 cb-caption">
             Complete the previous lesson in this module to unlock this one.
           </p>
-          <Link
-            href={`/modules/${moduleData.slug}`}
-            className="mt-6 inline-block rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
-          >
-            Back to module
+          <Link href={`/modules/${moduleData.slug}`} className="mt-6 cb-btn cb-btn-primary">
+            Back to module <span aria-hidden>→</span>
           </Link>
         </div>
       </div>
@@ -78,33 +76,42 @@ export default async function LessonPage({ params }: Props) {
       <div>
         <Link
           href={`/modules/${moduleData.slug}`}
-          className="text-sm font-medium text-stone-600 hover:text-stone-900"
+          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
           ← {moduleData.title}
         </Link>
-        <p className="mt-1 text-xs font-medium text-stone-500">
-          Lesson {lesson.order_index} of {allLessons.length}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-stone-900">
-          {lesson.title}
-        </h1>
+
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <div className="cb-eyebrow">
+              Module {moduleData.order_index} · Lesson {lesson.order_index}
+            </div>
+            <h1 className="mt-2 text-3xl sm:text-4xl font-semibold text-stone-900 dark:text-stone-50 tracking-tight uppercase">
+              {lesson.title}
+            </h1>
+          </div>
+          <p className="cb-caption sm:text-right">
+            {lesson.order_index} of {allLessons.length}
+          </p>
+        </div>
+
         {lesson.description && (
-          <p className="mt-2 text-stone-600">{lesson.description}</p>
+          <p className="mt-3 cb-body max-w-3xl">{lesson.description}</p>
         )}
       </div>
 
-      <VimeoPlayer
-        videoUrl={lesson.video_url}
-        videoProvider={lesson.video_provider}
-        title={lesson.title}
-      />
+      <section className="cb-panel p-4 sm:p-5">
+        <VimeoPlayer
+          videoUrl={lesson.video_url}
+          videoProvider={lesson.video_provider}
+          title={lesson.title}
+        />
+      </section>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-h-[42px]">
           {isCompleted ? (
-            <span className="inline-flex items-center rounded-lg bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
-              Completed
-            </span>
+            <span className="cb-badge cb-badge-completed">Completed</span>
           ) : (
             <MarkCompleteButton lessonId={lesson.id} />
           )}
@@ -112,42 +119,46 @@ export default async function LessonPage({ params }: Props) {
       </div>
 
       <nav
-        className="flex flex-col gap-4 border-t border-stone-200 pt-8 sm:flex-row sm:items-center sm:justify-between"
+        className="flex flex-col gap-4 border-t border-stone-200/70 pt-8 sm:flex-row sm:items-center sm:justify-between"
         aria-label="Lesson navigation"
       >
         <div>
           {prevLesson ? (
             <Link
               href={`/lessons/${prevLesson.slug}`}
-              className="text-sm font-medium text-stone-600 hover:text-stone-900"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
             >
-              ← Previous: {prevLesson.title}
+              <span aria-hidden>←</span> Previous: {prevLesson.title}
             </Link>
           ) : (
-            <span className="text-sm text-stone-400">No previous lesson</span>
+            <span className="text-sm text-stone-400 dark:text-stone-300">
+              No previous lesson
+            </span>
           )}
         </div>
         <div className="text-right">
           {nextLesson ? (
             <Link
               href={`/lessons/${nextLesson.slug}`}
-              className="inline-flex items-center rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+              className="cb-btn cb-btn-primary inline-flex"
             >
-              Next: {nextLesson.title} →
+              Next: {nextLesson.title} <span aria-hidden>→</span>
             </Link>
           ) : isLastLesson && examAvailable ? (
             <Link
               href={`/modules/${moduleData.slug}/exam`}
-              className="inline-flex items-center rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800"
+              className="cb-btn cb-btn-primary inline-flex"
             >
-              Take module exam →
+              Take module exam <span aria-hidden>→</span>
             </Link>
           ) : isLastLesson ? (
-            <p className="text-sm text-stone-500">
+            <p className="text-sm text-stone-500 dark:text-stone-400">
               Complete this lesson to unlock the module exam.
             </p>
           ) : (
-            <span className="text-sm text-stone-400">No next lesson</span>
+            <span className="text-sm text-stone-400 dark:text-stone-300">
+              No next lesson
+            </span>
           )}
         </div>
       </nav>
