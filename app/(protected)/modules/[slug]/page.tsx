@@ -118,59 +118,65 @@ export default async function ModuleDetailPage({ params }: Props) {
               const isLocked = lesson.status === "locked";
               return (
                 <li key={lesson.id} className={isLocked ? "opacity-50" : ""}>
-                  <Link
-                    href={`/lessons/${lesson.slug}`}
-                    className={[
-                      "group cb-panel block p-4 sm:p-5 transition-colors focus:outline-none",
-                      isLocked
-                        ? "hover:bg-white/60 dark:hover:bg-white/10"
-                        : "hover:bg-white/80 dark:hover:bg-white/5",
-                      "focus:ring-2 focus:ring-stone-900/10",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-start justify-between gap-6">
-                      <div className="flex items-start gap-4 min-w-0">
-                        <span
-                          className={[
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-sm font-semibold text-stone-800",
-                            "dark:bg-white/10 dark:text-stone-200",
-                            "dark:group-hover:text-stone-900 group-hover:text-stone-900",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                        >
-                          {lesson.order_index}
-                        </span>
-                        <div className="min-w-0">
-                          <h3
+                  {isLocked ? (
+                    <div className="cb-panel p-4 sm:p-5 cursor-not-allowed">
+                      <div className="flex items-start justify-between gap-6">
+                        <div className="flex items-start gap-4 min-w-0">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white/40 text-sm font-semibold text-stone-600 dark:bg-white/10 dark:text-stone-400">
+                            {lesson.order_index}
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold leading-snug text-stone-600 dark:text-stone-400">
+                              {lesson.title}
+                            </h3>
+                            {lesson.description && (
+                              <p className="cb-caption mt-1 line-clamp-2 text-stone-600 dark:text-stone-400">
+                                {lesson.description}
+                              </p>
+                            )}
+                            <div className="mt-3">{statusBadge(lesson.status)}</div>
+                          </div>
+                        </div>
+                        <div className="pt-1" />
+                      </div>
+                    </div>
+                  ) : (
+                    <Link
+                      href={`/lessons/${lesson.slug}`}
+                      className={[
+                        "group cb-panel block p-4 sm:p-5 transition-colors focus:outline-none",
+                        "hover:bg-white dark:hover:bg-white",
+                        "focus:ring-2 focus:ring-stone-900/10",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-start justify-between gap-6">
+                        <div className="flex items-start gap-4 min-w-0">
+                          <span
                             className={[
-                              "font-semibold leading-snug",
-                              isLocked
-                                ? "text-stone-600 dark:text-stone-400 dark:group-hover:text-stone-900 group-hover:text-stone-900"
-                                : "text-stone-900 dark:text-stone-50 dark:group-hover:text-stone-900 group-hover:text-stone-900",
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold bg-white",
+                              "border-stone-200 text-stone-800",
+                              "dark:bg-white/10 dark:text-stone-200",
+                              "group-hover:border-stone-900 group-hover:text-stone-900",
                             ].join(" ")}
                           >
-                            {lesson.title}
-                          </h3>
-                          {lesson.description && (
-                          <p
-                            className={[
-                              "cb-caption mt-1 line-clamp-2",
-                              "group-hover:text-stone-900 dark:group-hover:text-stone-900",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                          >
-                            {lesson.description}
-                          </p>
-                          )}
-                          <div className="mt-3">{statusBadge(lesson.status)}</div>
+                            {lesson.order_index}
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold leading-snug text-stone-900 dark:text-stone-50 transition-colors group-hover:text-stone-900">
+                              {lesson.title}
+                            </h3>
+                            {lesson.description && (
+                              <p className="cb-caption mt-1 line-clamp-2 text-stone-600 dark:text-stone-400 transition-colors group-hover:text-stone-900">
+                                {lesson.description}
+                              </p>
+                            )}
+                            <div className="mt-3">{statusBadge(lesson.status)}</div>
+                          </div>
                         </div>
+                        <div className="pt-1" />
                       </div>
-
-                      <div className="pt-1" />
-                    </div>
-                  </Link>
+                    </Link>
+                  )}
                 </li>
               );
             })}
