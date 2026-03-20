@@ -35,7 +35,6 @@ export function LessonAutoCompleteVideo({
       router.refresh();
     } else {
       // Intentionally silent: the page will still reflect latest progress on refresh.
-      // eslint-disable-next-line no-console
       console.error(res.error ?? "Failed to mark lesson complete");
     }
   }

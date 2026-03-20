@@ -20,6 +20,7 @@ export function VimeoPlayer({
     videoProvider === "vimeo" && videoUrl && videoUrl.trim().length > 0;
   const videoId = canUseVimeo ? extractVimeoId(videoUrl) : null;
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const shouldListen = !!onEnded && !!videoId;
 
   const embedUrl = useMemo(() => {
     if (!videoId) return null;
@@ -32,18 +33,8 @@ export function VimeoPlayer({
     return url;
   }, [videoId, onEnded]);
 
-  if (!videoId) {
-    return (
-      <div className="aspect-video w-full rounded-2xl border border-stone-200 bg-stone-100 flex items-center justify-center">
-        <p className="text-stone-500 text-sm px-4 text-center">
-          No video available for this lesson.
-        </p>
-      </div>
-    );
-  }
-
   useEffect(() => {
-    if (!onEnded) return;
+    if (!shouldListen) return;
     const iframeEl = iframeRef.current;
     if (!iframeEl) return;
 
@@ -87,7 +78,17 @@ export function VimeoPlayer({
         }
       }
     };
-  }, [onEnded]);
+  }, [onEnded, shouldListen, videoId]);
+
+  if (!videoId) {
+    return (
+      <div className="aspect-video w-full rounded-2xl border border-stone-200 bg-stone-100 flex items-center justify-center">
+        <p className="text-stone-500 text-sm px-4 text-center">
+          No video available for this lesson.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="aspect-video w-full rounded-2xl border border-stone-200 overflow-hidden bg-stone-900">
