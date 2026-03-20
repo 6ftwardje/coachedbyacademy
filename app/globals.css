@@ -91,7 +91,8 @@ body {
 
 .cb-btn-primary {
   background: var(--accent);
-  color: #fff;
+  /* In dark mode is --accent light; we need dark text for contrast. */
+  color: var(--background);
 }
 .cb-btn-primary:hover {
   background: color-mix(in oklab, var(--accent) 88%, #000);
@@ -130,7 +131,8 @@ body {
 }
 
 .cb-badge-completed {
-  background: color-mix(in oklab, var(--background) 80%, #c8f1db 40%);
-  border: 1px solid color-mix(in oklab, var(--border) 60%, #4caf66 28%);
-  color: #1f4a2d;
+  /* More vibrant completed badge: readable + premium in both themes. */
+  background: color-mix(in oklab, #c8f1db 75%, var(--background) 25%);
+  border: 1px solid color-mix(in oklab, #34d399 60%, var(--border) 40%);
+  color: #0f3b20;
 }

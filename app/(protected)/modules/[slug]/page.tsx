@@ -60,7 +60,7 @@ export default async function ModuleDetailPage({ params }: Props) {
           href="/modules"
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← Modules
+          Modules
         </Link>
         <div className="cb-panel p-8 text-center">
           <div className="cb-eyebrow">Module locked</div>
@@ -71,7 +71,7 @@ export default async function ModuleDetailPage({ params }: Props) {
             Pass the previous module&apos;s exam to unlock this module.
           </p>
           <Link href="/modules" className="mt-6 cb-btn cb-btn-primary">
-            Back to modules <span aria-hidden>→</span>
+            Back to modules
           </Link>
         </div>
       </div>
@@ -85,7 +85,7 @@ export default async function ModuleDetailPage({ params }: Props) {
           href="/modules"
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← Modules
+          Modules
         </Link>
         <div className="cb-eyebrow mt-4">
           Module {moduleData.order_index}
@@ -121,7 +121,7 @@ export default async function ModuleDetailPage({ params }: Props) {
                   <Link
                     href={`/lessons/${lesson.slug}`}
                     className={[
-                      "cb-panel block p-4 sm:p-5 transition-colors focus:outline-none",
+                      "group cb-panel block p-4 sm:p-5 transition-colors focus:outline-none",
                       isLocked
                         ? "hover:bg-white/60 dark:hover:bg-white/10"
                         : "hover:bg-white/80 dark:hover:bg-white/5",
@@ -130,7 +130,15 @@ export default async function ModuleDetailPage({ params }: Props) {
                   >
                     <div className="flex items-start justify-between gap-6">
                       <div className="flex items-start gap-4 min-w-0">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-sm font-semibold text-stone-800 dark:bg-white/10 dark:text-stone-200">
+                        <span
+                          className={[
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-white text-sm font-semibold text-stone-800",
+                            "dark:bg-white/10 dark:text-stone-200",
+                            "dark:group-hover:text-stone-900 group-hover:text-stone-900",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
                           {lesson.order_index}
                         </span>
                         <div className="min-w-0">
@@ -138,33 +146,29 @@ export default async function ModuleDetailPage({ params }: Props) {
                             className={[
                               "font-semibold leading-snug",
                               isLocked
-                                ? "text-stone-600 dark:text-stone-400"
-                                : "text-stone-900 dark:text-stone-50",
+                                ? "text-stone-600 dark:text-stone-400 dark:group-hover:text-stone-900 group-hover:text-stone-900"
+                                : "text-stone-900 dark:text-stone-50 dark:group-hover:text-stone-900 group-hover:text-stone-900",
                             ].join(" ")}
                           >
                             {lesson.title}
                           </h3>
                           {lesson.description && (
-                            <p className="cb-caption mt-1 line-clamp-2">
-                              {lesson.description}
-                            </p>
+                          <p
+                            className={[
+                              "cb-caption mt-1 line-clamp-2",
+                              "group-hover:text-stone-900 dark:group-hover:text-stone-900",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                          >
+                            {lesson.description}
+                          </p>
                           )}
                           <div className="mt-3">{statusBadge(lesson.status)}</div>
                         </div>
                       </div>
 
-                      <div className="pt-1">
-                        <span
-                          className={[
-                            "text-sm font-semibold",
-                            isLocked
-                              ? "text-stone-500 dark:text-stone-400"
-                              : "text-stone-800 dark:text-stone-200",
-                          ].join(" ")}
-                        >
-                          <span aria-hidden>→</span>
-                        </span>
-                      </div>
+                      <div className="pt-1" />
                     </div>
                   </Link>
                 </li>
@@ -195,8 +199,7 @@ export default async function ModuleDetailPage({ params }: Props) {
               href={`/modules/${moduleData.slug}/exam`}
               className="mt-5 cb-btn cb-btn-primary"
             >
-              {hasPassedThisExam ? "Retake exam" : "Take exam"}{" "}
-              <span aria-hidden>→</span>
+              {hasPassedThisExam ? "Retake exam" : "Take exam"}
             </Link>
           ) : (
             <button

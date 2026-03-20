@@ -15,7 +15,6 @@ export default async function AccountPage() {
   return (
     <div className="space-y-10">
       <section className="space-y-4">
-        <div className="cb-eyebrow">CoachedBy Academy</div>
         <h1 className="cb-display">Account</h1>
         <p className="cb-body max-w-2xl">
           Member identity and access state. Minimal, so you can focus on the work.
@@ -41,7 +40,7 @@ export default async function AccountPage() {
 
           <form action="/auth/signout" method="post">
             <button type="submit" className="cb-btn cb-btn-secondary">
-              Sign out <span aria-hidden>→</span>
+              Sign out
             </button>
           </form>
         </div>

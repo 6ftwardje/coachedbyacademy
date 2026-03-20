@@ -38,7 +38,7 @@ export default async function ModuleExamPage({ params }: Props) {
           href="/modules"
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← Modules
+          Modules
         </Link>
         <div className="cb-panel p-8 text-center">
           <div className="cb-eyebrow">Module locked</div>
@@ -49,7 +49,7 @@ export default async function ModuleExamPage({ params }: Props) {
             Pass the previous module&apos;s exam to access this module.
           </p>
           <Link href="/modules" className="mt-6 cb-btn cb-btn-primary">
-            Back to modules <span aria-hidden>→</span>
+            Back to modules
           </Link>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default async function ModuleExamPage({ params }: Props) {
           href={`/modules/${moduleData.slug}`}
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← {moduleData.title}
+          {moduleData.title}
         </Link>
         <div className="cb-panel p-8 text-center">
           <div className="cb-eyebrow">No exam available</div>
@@ -77,7 +77,7 @@ export default async function ModuleExamPage({ params }: Props) {
             href={`/modules/${moduleData.slug}`}
             className="mt-6 cb-btn cb-btn-primary"
           >
-            Back to module <span aria-hidden>→</span>
+            Back to module
           </Link>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default async function ModuleExamPage({ params }: Props) {
           href={`/modules/${moduleData.slug}`}
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← {moduleData.title}
+          {moduleData.title}
         </Link>
         <div className="cb-panel p-8 text-center">
           <div className="cb-eyebrow">Exam locked</div>
@@ -105,7 +105,7 @@ export default async function ModuleExamPage({ params }: Props) {
             href={`/modules/${moduleData.slug}`}
             className="mt-6 cb-btn cb-btn-primary"
           >
-            Back to module <span aria-hidden>→</span>
+            Back to module
           </Link>
         </div>
       </div>
@@ -121,7 +121,7 @@ export default async function ModuleExamPage({ params }: Props) {
           href={`/modules/${moduleData.slug}`}
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← {moduleData.title}
+          {moduleData.title}
         </Link>
 
         <div className="cb-eyebrow mt-4">Module exam</div>
@@ -144,9 +144,9 @@ export default async function ModuleExamPage({ params }: Props) {
           <div className="cb-caption">No questions in this exam yet.</div>
           <Link
             href={`/modules/${moduleData.slug}`}
-              className="mt-6 inline-flex text-sm font-semibold text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
+            className="mt-6 inline-flex text-sm font-semibold text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
           >
-            Back to module <span aria-hidden>→</span>
+            Back to module
           </Link>
         </div>
       ) : (

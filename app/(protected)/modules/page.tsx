@@ -59,7 +59,6 @@ export default async function ModulesPage() {
   return (
     <div className="space-y-10">
       <section className="space-y-4">
-        <div className="cb-eyebrow">CoachedBy Academy</div>
         <h1 className="cb-display">Modules</h1>
         <p className="cb-body max-w-2xl">
           Each module is a training block. Complete lessons and pass the exam to
@@ -81,17 +80,17 @@ export default async function ModulesPage() {
                 {canOpen ? (
                   <Link
                     href={`/modules/${mod.slug}`}
-                    className="cb-panel block p-5 sm:p-6 hover:bg-white/80 transition-colors"
+                    className="group cb-panel block p-5 sm:p-6 hover:bg-white/80 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-6">
                       <div className="min-w-0">
                         <div className="flex items-center gap-3">
-                          <span className="text-xs font-semibold tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400">
+                          <span className="text-xs font-semibold tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400 dark:group-hover:text-stone-900">
                             Module {mod.order_index}
                           </span>
                           {stateBadge(state)}
                         </div>
-                        <h2 className="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-50 leading-snug">
+                        <h2 className="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-50 dark:group-hover:text-stone-900 leading-snug">
                           {mod.title}
                         </h2>
                         {mod.short_description && (
@@ -103,8 +102,8 @@ export default async function ModulesPage() {
                           {lessonCount} lesson{lessonCount !== 1 ? "s" : ""}
                         </p>
                       </div>
-                      <div className="text-sm font-semibold text-stone-800 dark:text-stone-200 pt-1">
-                        Open <span aria-hidden>→</span>
+                      <div className="text-sm font-semibold text-stone-800 dark:text-stone-200 dark:group-hover:text-stone-900 pt-1">
+                        Open
                       </div>
                     </div>
                   </Link>

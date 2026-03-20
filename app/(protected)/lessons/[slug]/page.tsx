@@ -7,7 +7,7 @@ import { getLessonStatuses } from "@/lib/lesson-gate";
 import { getProgressByLessonIds } from "@/lib/progress";
 import { getExamByModuleId } from "@/lib/exams";
 import { VimeoPlayer } from "@/components/VimeoPlayer";
-import { MarkCompleteButton } from "./MarkCompleteButton";
+import { LessonAutoCompleteVideo } from "./LessonAutoCompleteVideo";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -53,7 +53,7 @@ export default async function LessonPage({ params }: Props) {
           href={`/modules/${moduleData.slug}`}
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← {moduleData.title}
+          {moduleData.title}
         </Link>
         <div className="cb-panel p-8 text-center">
           <div className="cb-eyebrow">Lesson locked</div>
@@ -64,7 +64,7 @@ export default async function LessonPage({ params }: Props) {
             Complete the previous lesson in this module to unlock this one.
           </p>
           <Link href={`/modules/${moduleData.slug}`} className="mt-6 cb-btn cb-btn-primary">
-            Back to module <span aria-hidden>→</span>
+            Back to module
           </Link>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default async function LessonPage({ params }: Props) {
           href={`/modules/${moduleData.slug}`}
           className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
         >
-          ← {moduleData.title}
+          {moduleData.title}
         </Link>
 
         <div className="mt-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
@@ -101,11 +101,21 @@ export default async function LessonPage({ params }: Props) {
       </div>
 
       <section className="cb-panel p-4 sm:p-5">
-        <VimeoPlayer
-          videoUrl={lesson.video_url}
-          videoProvider={lesson.video_provider}
-          title={lesson.title}
-        />
+        {isCompleted ? (
+          <VimeoPlayer
+            videoUrl={lesson.video_url}
+            videoProvider={lesson.video_provider}
+            title={lesson.title}
+          />
+        ) : (
+          <LessonAutoCompleteVideo
+            lessonId={lesson.id}
+            videoUrl={lesson.video_url}
+            videoProvider={lesson.video_provider}
+            title={lesson.title}
+            isCompleted={isCompleted}
+          />
+        )}
       </section>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -113,7 +123,7 @@ export default async function LessonPage({ params }: Props) {
           {isCompleted ? (
             <span className="cb-badge cb-badge-completed">Completed</span>
           ) : (
-            <MarkCompleteButton lessonId={lesson.id} />
+            <span className="cb-caption">Progress updates automatically.</span>
           )}
         </div>
       </div>
@@ -128,7 +138,7 @@ export default async function LessonPage({ params }: Props) {
               href={`/lessons/${prevLesson.slug}`}
               className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
             >
-              <span aria-hidden>←</span> Previous: {prevLesson.title}
+              Previous: {prevLesson.title}
             </Link>
           ) : (
             <span className="text-sm text-stone-400 dark:text-stone-300">
@@ -142,14 +152,14 @@ export default async function LessonPage({ params }: Props) {
               href={`/lessons/${nextLesson.slug}`}
               className="cb-btn cb-btn-primary inline-flex"
             >
-              Next: {nextLesson.title} <span aria-hidden>→</span>
+              Next: {nextLesson.title}
             </Link>
           ) : isLastLesson && examAvailable ? (
             <Link
               href={`/modules/${moduleData.slug}/exam`}
               className="cb-btn cb-btn-primary inline-flex"
             >
-              Take module exam <span aria-hidden>→</span>
+              Take module exam
             </Link>
           ) : isLastLesson ? (
             <p className="text-sm text-stone-500 dark:text-stone-400">

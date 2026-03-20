@@ -79,12 +79,12 @@ export function ExamForm({
             href={`/modules/${moduleSlug}`}
             className="cb-btn cb-btn-secondary"
           >
-            Back to module <span aria-hidden>→</span>
+            Back to module
           </Link>
 
           {result.passed && (
             <Link href="/modules" className="cb-btn cb-btn-primary">
-              Continue to next module <span aria-hidden>→</span>
+              Continue to next module
             </Link>
           )}
 
@@ -97,7 +97,7 @@ export function ExamForm({
               }}
               className="cb-btn cb-btn-primary"
             >
-              Retake exam <span aria-hidden>→</span>
+              Retake exam
             </button>
           )}
         </div>
@@ -135,7 +135,7 @@ export function ExamForm({
                     }
                     className="mt-0.5 h-4 w-4 border-stone-300 text-stone-900 dark:text-stone-50 focus:ring-stone-500"
                   />
-                  <span className="text-stone-800 dark:text-stone-200 font-medium">
+                  <span className="text-stone-800 hover:text-stone-900 dark:text-stone-200 dark:hover:text-stone-900 font-medium">
                     {option}
                   </span>
                 </label>

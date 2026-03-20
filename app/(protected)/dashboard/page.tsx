@@ -86,7 +86,6 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-10">
       <section className="space-y-5">
-        <div className="cb-eyebrow">CoachedBy Academy</div>
         <h1 className="cb-display">
           {student?.name ? `Welcome, ${student.name}` : "Dashboard"}
         </h1>
@@ -101,7 +100,7 @@ export default async function DashboardPage() {
               href={`/modules/${featuredModule.slug}`}
               className="cb-btn cb-btn-primary w-full sm:w-auto"
             >
-              Open next module <span aria-hidden>→</span>
+              Open next module
             </Link>
           ) : (
             <span className="cb-btn cb-btn-secondary w-full sm:w-auto text-stone-500 dark:text-stone-400">
@@ -113,7 +112,7 @@ export default async function DashboardPage() {
             href="/modules"
             className="cb-btn cb-btn-secondary w-full sm:w-auto"
           >
-            View all modules <span aria-hidden>→</span>
+            View all modules
           </Link>
         </div>
       </section>
@@ -166,19 +165,19 @@ export default async function DashboardPage() {
         {featuredModule ? (
           <Link
             href={`/modules/${featuredModule.slug}`}
-            className="cb-panel block p-6 sm:p-7 hover:bg-white/80 transition-colors"
+              className="group cb-panel block p-6 sm:p-7 hover:bg-white/80 transition-colors"
           >
             <div className="flex items-start justify-between gap-8">
               <div className="space-y-3 min-w-0">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400">
+                  <span className="text-xs font-semibold tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400 dark:group-hover:text-stone-900">
                     Module {featuredModule.order_index}
                   </span>
                   {stateBadge(
                     moduleStateMap.get(featuredModule.id) ?? "locked"
                   )}
                 </div>
-                <h2 className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-stone-50 leading-tight">
+                <h2 className="text-xl sm:text-2xl font-semibold text-stone-900 dark:text-stone-50 dark:group-hover:text-stone-900 leading-tight">
                   {featuredModule.title}
                 </h2>
                 {featuredModule.short_description && (
@@ -188,17 +187,14 @@ export default async function DashboardPage() {
                 )}
                 <div className="flex items-center gap-4 pt-1">
                   <span className="cb-caption">{featuredLessonCount} lessons</span>
-                  <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
-                    Enter <span aria-hidden>→</span>
-                  </span>
                 </div>
               </div>
               <div className="hidden sm:flex flex-col items-end">
                 <div className="text-xs font-semibold tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400">
                   Next step
                 </div>
-                <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-50">
-                  →
+                <div className="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-50 dark:group-hover:text-stone-900">
+                    Step
                 </div>
               </div>
             </div>
@@ -232,17 +228,17 @@ export default async function DashboardPage() {
                   <li key={mod.id}>
                     <Link
                       href={`/modules/${mod.slug}`}
-                      className="cb-panel block p-4 sm:p-5 hover:bg-white/80 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                      className="group cb-panel block p-4 sm:p-5 hover:bg-white/80 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-900/10"
                     >
                       <div className="flex items-start justify-between gap-6">
                         <div className="min-w-0">
                           <div className="flex items-center gap-3">
-                            <span className="text-xs font-semibold tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400">
+                          <span className="text-xs font-semibold tracking-[0.18em] uppercase text-stone-500 dark:text-stone-400 dark:group-hover:text-stone-900">
                               Module {mod.order_index}
                             </span>
                             {stateBadge(state)}
                           </div>
-                          <h3 className="mt-2 text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-50 leading-snug">
+                          <h3 className="mt-2 text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-50 dark:group-hover:text-stone-900 leading-snug">
                             {mod.title}
                           </h3>
                           {mod.short_description && (
@@ -253,8 +249,8 @@ export default async function DashboardPage() {
                         </div>
 
                         <div className="pt-1">
-                          <span className="text-sm font-semibold text-stone-900 dark:text-stone-50">
-                            <span aria-hidden>→</span>
+                          <span className="text-sm font-semibold text-stone-900 dark:text-stone-50 dark:group-hover:text-stone-900">
+                            Open
                           </span>
                         </div>
                       </div>
