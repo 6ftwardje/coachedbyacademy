@@ -1,20 +1,61 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SidebarNavItem } from "@/components/SidebarNavItem";
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/modules", label: "Modules" },
-  { href: "/account", label: "Account" },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/modules",
+    label: "Academy",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M4 6.5h16M4 12h10M4 17.5h16"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/account",
+    label: "Account",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.418 0-8 2.015-8 4.5V21h16v-2.5C20 16.015 16.418 14 12 14Z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
 ];
 
-export function AppShell({
-  children,
+function SidebarContent({
   studentName,
+  onNavigate,
 }: {
-  children: React.ReactNode;
   studentName: string | null;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -28,91 +69,193 @@ export function AppShell({
     : "";
 
   return (
-    <div className="h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
-      <div className="flex h-full max-w-6xl mx-auto w-full min-h-0">
-        <aside className="hidden md:flex md:w-56 md:shrink-0 h-full">
-          <div className="flex h-full flex-col p-5">
-            <div className="sticky top-0 z-20 pb-6 bg-[var(--background)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70">
-              <div className="mb-7">
-              <Link href="/dashboard" className="group inline-flex items-center">
-                <img
-                  src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
-                  alt="CoachedBy Academy"
-                  className="h-8 w-auto"
-                  loading="eager"
-                />
-              </Link>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="px-1">
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          className="inline-flex items-center gap-2 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_25%,transparent)]"
+        >
+          <img
+            src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+            alt="CoachedBy Academy"
+            className="h-8 w-auto"
+            loading="eager"
+          />
+        </Link>
+        <p className="mt-3 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">
+          Academy
+        </p>
+      </div>
 
-              {studentName && (
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full border border-stone-200 bg-white/60 dark:bg-white/10 flex items-center justify-center text-sm font-semibold text-stone-900 dark:text-stone-50">
-                    {initials || studentName[0]?.toUpperCase()}
-                  </div>
-                  <span className="text-sm font-medium text-stone-600 dark:text-stone-200 truncate">
-                    {studentName}
-                  </span>
-                </div>
-              )}
+      {studentName && (
+        <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[0_1px_0_rgba(28,25,23,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[color-mix(in_oklab,var(--card)_85%,var(--border)_15%)] text-sm font-bold text-[var(--foreground)]">
+              {initials || studentName[0]?.toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
+                Signed in
               </div>
-
-              <div className="bg-white border border-stone-200 rounded-xl p-2.5">
-                <nav className="flex flex-col gap-1" aria-label="Main">
-                  {nav.map((item) => {
-                    const isActive =
-                      pathname === item.href ||
-                      (item.href !== "/dashboard" &&
-                        pathname.startsWith(item.href));
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={[
-                          "relative block rounded-lg px-3 py-2 text-sm font-semibold tracking-tight transition-colors",
-                          "border-l-2 border-transparent",
-                          isActive
-                            ? "bg-stone-50 text-stone-900 border-stone-900"
-                            : "text-stone-600 hover:bg-stone-50 hover:text-stone-900",
-                        ].join(" ")}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </nav>
+              <div className="mt-0.5 truncate text-sm font-semibold text-[var(--foreground)]">
+                {studentName}
               </div>
             </div>
-
-            <div className="flex-1" />
           </div>
-        </aside>
-
-        <div className="flex-1 min-w-0 flex flex-col min-h-0 h-full">
-          <div className="md:hidden sticky top-0 z-20 bg-[var(--background)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70 px-4 py-2 flex items-center justify-between gap-3">
-            <div className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-1 overflow-x-auto">
-              {nav.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href));
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={[
-                      "shrink-0 rounded-lg px-3 py-2 text-xs font-semibold tracking-[0.14em] uppercase transition-colors",
-                      isActive
-                        ? "bg-stone-50 text-stone-900"
-                        : "text-stone-600 hover:bg-stone-50 hover:text-stone-900",
-                    ].join(" ")}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
         </div>
+      )}
+
+      <nav className="mt-8 flex flex-1 flex-col gap-1" aria-label="Main">
+        {nav.map((item) => {
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          return (
+            <SidebarNavItem
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              active={isActive}
+              icon={item.icon}
+              onNavigate={onNavigate}
+            />
+          );
+        })}
+      </nav>
+
+      <div className="mt-auto border-t border-[var(--border)] pt-5">
+        <div className="flex flex-col gap-1">
+          <a
+            href="mailto:support@coachedby.be"
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
+          >
+            Support
+          </a>
+          <form action="/auth/signout" method="post">
+            <button
+              type="submit"
+              className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AppShell({
+  children,
+  studentName,
+}: {
+  children: React.ReactNode;
+  studentName: string | null;
+}) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  return (
+    <div className="flex min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      {/* Desktop sidebar */}
+      <aside className="relative hidden w-[272px] shrink-0 border-r border-[var(--border)] bg-[var(--background)] md:flex md:flex-col">
+        <div className="flex h-full min-h-0 flex-col px-5 py-7">
+          <SidebarContent
+            studentName={studentName}
+            onNavigate={() => setMobileOpen(false)}
+          />
+        </div>
+      </aside>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <>
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="fixed inset-0 z-40 bg-stone-900/35 backdrop-blur-[2px] md:hidden"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="fixed inset-y-0 left-0 z-50 flex w-[min(300px,88vw)] flex-col border-r border-[var(--border)] bg-[var(--background)] shadow-2xl md:hidden">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
+                Menu
+              </span>
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-sm font-semibold text-[var(--muted)] hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
+                onClick={() => setMobileOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-6">
+              <SidebarContent
+                studentName={studentName}
+                onNavigate={() => setMobileOpen(false)}
+              />
+            </div>
+          </aside>
+        </>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,white)] px-4 py-3 backdrop-blur-md md:hidden dark:bg-[color-mix(in_oklab,var(--background)_92%,#0c0a09)]">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
+            onClick={() => setMobileOpen(true)}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M4 7h16M4 12h16M4 17h16"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+            Menu
+          </button>
+          <Link href="/dashboard" className="inline-flex items-center">
+            <img
+              src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+              alt="CoachedBy Academy"
+              className="h-7 w-auto"
+            />
+          </Link>
+          <div className="w-[72px]" aria-hidden />
+        </div>
+
+        <main
+          id="mobile-nav"
+          className="min-h-[calc(100dvh-56px)] flex-1 overflow-y-auto md:min-h-screen"
+        >
+          <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

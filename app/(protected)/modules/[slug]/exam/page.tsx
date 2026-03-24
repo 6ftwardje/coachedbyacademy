@@ -8,6 +8,10 @@ import { areAllLessonsCompleted } from "@/lib/progress";
 import { getModuleAccessMap } from "@/lib/module-gate";
 import { getPublishedModules } from "@/lib/modules";
 import { ExamForm } from "./ExamForm";
+import { asText } from "@/lib/as-text";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { AppPageLayout } from "@/components/layout/AppPageLayout";
+import { RightRailCard } from "@/components/layout/RightRailCard";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -33,22 +37,18 @@ export default async function ModuleExamPage({ params }: Props) {
 
   if (!canAccessModule) {
     return (
-      <div className="space-y-6">
-        <Link
-          href="/modules"
-          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
-        >
-          Modules
-        </Link>
-        <div className="cb-panel p-8 text-center">
-          <div className="cb-eyebrow">Module locked</div>
-          <h1 className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-50">
-            Access required
-          </h1>
-          <p className="mt-2 cb-caption">
-            Pass the previous module&apos;s exam to access this module.
-          </p>
-          <Link href="/modules" className="mt-6 cb-btn cb-btn-primary">
+      <div>
+        <PageHeader
+          breadcrumbs={[
+            { label: "Academy", href: "/modules" },
+            { label: "Exam" },
+          ]}
+          eyebrow="Access"
+          title="Module locked"
+          description="Pass the previous module’s exam to access this assessment."
+        />
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
+          <Link href="/modules" className="cb-btn cb-btn-primary">
             Back to modules
           </Link>
         </div>
@@ -58,24 +58,21 @@ export default async function ModuleExamPage({ params }: Props) {
 
   if (!exam) {
     return (
-      <div className="space-y-6">
-        <Link
-          href={`/modules/${moduleData.slug}`}
-          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
-        >
-          {moduleData.title}
-        </Link>
-        <div className="cb-panel p-8 text-center">
-          <div className="cb-eyebrow">No exam available</div>
-          <h1 className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-50">
-            Nothing to submit
-          </h1>
-          <p className="mt-2 cb-caption">
-            This module does not have an exam configured.
-          </p>
+      <div>
+        <PageHeader
+          breadcrumbs={[
+            { label: "Academy", href: "/modules" },
+            { label: moduleData.title, href: `/modules/${moduleData.slug}` },
+            { label: "Exam" },
+          ]}
+          eyebrow="Assessment"
+          title="No exam configured"
+          description="This module does not have an exam yet."
+        />
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
           <Link
             href={`/modules/${moduleData.slug}`}
-            className="mt-6 cb-btn cb-btn-primary"
+            className="cb-btn cb-btn-primary"
           >
             Back to module
           </Link>
@@ -86,24 +83,21 @@ export default async function ModuleExamPage({ params }: Props) {
 
   if (!examUnlocked) {
     return (
-      <div className="space-y-6">
-        <Link
-          href={`/modules/${moduleData.slug}`}
-          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
-        >
-          {moduleData.title}
-        </Link>
-        <div className="cb-panel p-8 text-center">
-          <div className="cb-eyebrow">Exam locked</div>
-          <h1 className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-50">
-            Finish the work first
-          </h1>
-          <p className="mt-2 cb-caption">
-            Complete all lessons in this module to unlock the exam.
-          </p>
+      <div>
+        <PageHeader
+          breadcrumbs={[
+            { label: "Academy", href: "/modules" },
+            { label: moduleData.title, href: `/modules/${moduleData.slug}` },
+            { label: "Exam" },
+          ]}
+          eyebrow="Assessment"
+          title="Exam locked"
+          description="Complete every lesson in this module before you submit the exam."
+        />
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
           <Link
             href={`/modules/${moduleData.slug}`}
-            className="mt-6 cb-btn cb-btn-primary"
+            className="cb-btn cb-btn-primary"
           >
             Back to module
           </Link>
@@ -114,50 +108,73 @@ export default async function ModuleExamPage({ params }: Props) {
 
   const questions = await getExamQuestions(exam.id);
 
-  return (
-    <div className="space-y-10">
-      <div>
+  const rail = (
+    <>
+      <RightRailCard title="Assessment rules">
+        <ul className="space-y-3 cb-caption">
+          <li>Answer every question before you submit.</li>
+          <li>
+            Passing score:{" "}
+            <span className="font-semibold text-[var(--foreground)]">
+              {exam.passing_score}%
+            </span>
+            .
+          </li>
+          <li>Take your time. This is certification-level focus.</li>
+        </ul>
+      </RightRailCard>
+      <RightRailCard title="Context">
+        <p className="cb-caption leading-relaxed">
+          Module:{" "}
+          <span className="font-semibold text-[var(--foreground)]">{moduleData.title}</span>
+        </p>
         <Link
           href={`/modules/${moduleData.slug}`}
-          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
+          className="mt-3 inline-flex text-sm font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
         >
-          {moduleData.title}
+          ← Back to module
         </Link>
+      </RightRailCard>
+    </>
+  );
 
-        <div className="cb-eyebrow mt-4">Module exam</div>
-        <h1 className="mt-2 text-3xl sm:text-4xl font-semibold text-stone-900 dark:text-stone-50 tracking-tight uppercase">
-          {exam.title}
-        </h1>
-        {exam.description && (
-          <p className="mt-3 cb-body max-w-3xl">{exam.description}</p>
-        )}
-        <p className="mt-3 cb-caption">
-          Passing score:{" "}
-          <span className="font-semibold text-stone-900 dark:text-stone-50">
-            {exam.passing_score}%
-          </span>
-        </p>
+  const main =
+    questions.length === 0 ? (
+      <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
+        <p className="cb-caption">No questions in this exam yet.</p>
+        <Link
+          href={`/modules/${moduleData.slug}`}
+          className="mt-6 inline-flex text-sm font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+        >
+          Back to module
+        </Link>
       </div>
+    ) : (
+      <ExamForm
+        examId={exam.id}
+        questions={questions}
+        passingScore={exam.passing_score}
+        moduleSlug={moduleData.slug}
+        moduleTitle={moduleData.title}
+      />
+    );
 
-      {questions.length === 0 ? (
-        <div className="cb-panel p-8 text-center">
-          <div className="cb-caption">No questions in this exam yet.</div>
-          <Link
-            href={`/modules/${moduleData.slug}`}
-            className="mt-6 inline-flex text-sm font-semibold text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
-          >
-            Back to module
-          </Link>
-        </div>
-      ) : (
-        <ExamForm
-          examId={exam.id}
-          questions={questions}
-          passingScore={exam.passing_score}
-          moduleSlug={moduleData.slug}
-          moduleTitle={moduleData.title}
-        />
-      )}
+  return (
+    <div>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Academy", href: "/modules" },
+          { label: moduleData.title, href: `/modules/${moduleData.slug}` },
+          { label: "Exam" },
+        ]}
+        eyebrow="Module exam"
+        title={exam.title}
+        description={asText(exam.description) ?? undefined}
+        meta={
+          <span className="cb-caption">Passing: {exam.passing_score}%</span>
+        }
+      />
+      <AppPageLayout main={main} rail={rail} />
     </div>
   );
 }

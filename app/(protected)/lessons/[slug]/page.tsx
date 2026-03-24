@@ -8,8 +8,99 @@ import { getProgressByLessonIds } from "@/lib/progress";
 import { getExamByModuleId } from "@/lib/exams";
 import { VimeoPlayer } from "@/components/VimeoPlayer";
 import { LessonAutoCompleteVideo } from "./LessonAutoCompleteVideo";
+import { asText } from "@/lib/as-text";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { AppPageLayout } from "@/components/layout/AppPageLayout";
+import { RightRailCard } from "@/components/layout/RightRailCard";
+import type { LessonStatus } from "@/lib/types";
 
 type Props = { params: Promise<{ slug: string }> };
+
+function LessonRailRow({
+  lessonSlug,
+  title,
+  orderIndex,
+  status,
+  isCurrent,
+  locked,
+}: {
+  lessonSlug: string;
+  title: string;
+  orderIndex: number;
+  status: LessonStatus;
+  isCurrent: boolean;
+  locked: boolean;
+}) {
+  const label =
+    status === "completed"
+      ? "Done"
+      : status === "available"
+        ? "Open"
+        : "Locked";
+
+  if (locked) {
+    return (
+      <div
+        className={`flex items-start gap-3 rounded-xl border border-[var(--border)] px-3 py-2.5 ${
+          isCurrent
+            ? "bg-[color-mix(in_oklab,var(--card)_88%,var(--muted)_12%)]"
+            : "bg-[color-mix(in_oklab,var(--background)_92%,var(--muted)_8%)] opacity-70"
+        }`}
+      >
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--card)] text-xs font-semibold text-[var(--muted)]">
+          {orderIndex}
+        </span>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-[var(--muted)] line-clamp-2">
+            {title}
+          </div>
+          <div className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[var(--muted)] opacity-80">
+            {label}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/lessons/${lessonSlug}`}
+      className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+        isCurrent
+          ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)] shadow-sm"
+          : "border-[var(--border)] bg-[var(--card)] hover:border-[color-mix(in_oklab,var(--foreground)_30%,var(--border)_70%)]"
+      }`}
+    >
+      <span
+        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-semibold ${
+          isCurrent
+            ? "border-[color-mix(in_oklab,var(--background)_35%,transparent)] bg-[color-mix(in_oklab,var(--background)_18%,transparent)] text-[var(--background)]"
+            : "border-[var(--border)] bg-[color-mix(in_oklab,var(--card)_92%,var(--border)_8%)] text-[var(--muted)]"
+        }`}
+      >
+        {orderIndex}
+      </span>
+      <div className="min-w-0">
+        <div
+          className={`text-sm font-semibold leading-snug line-clamp-2 ${
+            isCurrent ? "text-[var(--background)]" : "text-[var(--foreground)]"
+          }`}
+        >
+          {title}
+        </div>
+        <div
+          className={`mt-1 text-[0.65rem] font-bold uppercase tracking-[0.14em] ${
+            isCurrent
+              ? "text-[color-mix(in_oklab,var(--background)_72%,transparent)]"
+              : "text-[var(--muted)]"
+          }`}
+        >
+          {label}
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 export default async function LessonPage({ params }: Props) {
   const { slug } = await params;
@@ -21,11 +112,11 @@ export default async function LessonPage({ params }: Props) {
 
   const allLessons = await getPublishedLessonsByModuleId(lesson.module_id);
   const [moduleData, statusMap, progressMap, exam] = await Promise.all([
-      getModuleById(lesson.module_id),
-      getLessonStatuses(student.id, allLessons),
-      getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
-      getExamByModuleId(lesson.module_id),
-    ]);
+    getModuleById(lesson.module_id),
+    getLessonStatuses(student.id, allLessons),
+    getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
+    getExamByModuleId(lesson.module_id),
+  ]);
 
   if (!moduleData) notFound();
 
@@ -45,25 +136,26 @@ export default async function LessonPage({ params }: Props) {
     (l) => progressMap.get(l.id)?.watched === true
   );
   const examAvailable = !!exam && allLessonsCompleted;
+  const lessonNotes = asText(lesson.description);
 
   if (!canAccess) {
     return (
-      <div className="space-y-6">
-        <Link
-          href={`/modules/${moduleData.slug}`}
-          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
-        >
-          {moduleData.title}
-        </Link>
-        <div className="cb-panel p-8 text-center">
-          <div className="cb-eyebrow">Lesson locked</div>
-          <h1 className="mt-2 text-2xl font-semibold text-stone-900 dark:text-stone-50">
-            Earn your access
-          </h1>
-          <p className="mt-2 cb-caption">
-            Complete the previous lesson in this module to unlock this one.
-          </p>
-          <Link href={`/modules/${moduleData.slug}`} className="mt-6 cb-btn cb-btn-primary">
+      <div>
+        <PageHeader
+          breadcrumbs={[
+            { label: "Academy", href: "/modules" },
+            { label: moduleData.title, href: `/modules/${moduleData.slug}` },
+            { label: "Lesson" },
+          ]}
+          eyebrow="Access"
+          title="This lesson is locked"
+          description="Complete the previous session in this module to continue."
+        />
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
+          <Link
+            href={`/modules/${moduleData.slug}`}
+            className="cb-btn cb-btn-primary"
+          >
             Back to module
           </Link>
         </div>
@@ -71,52 +163,78 @@ export default async function LessonPage({ params }: Props) {
     );
   }
 
-  return (
-    <div className="space-y-8">
-      <div>
+  const rail = (
+    <>
+      <RightRailCard title="Module">
         <Link
           href={`/modules/${moduleData.slug}`}
-          className="text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
+          className="text-sm font-semibold text-[var(--foreground)] underline-offset-2 hover:underline"
         >
           {moduleData.title}
         </Link>
+        <p className="mt-2 cb-caption">
+          Module {moduleData.order_index} · Lesson {lesson.order_index} of{" "}
+          {allLessons.length}
+        </p>
+      </RightRailCard>
 
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-          <div>
-            <div className="cb-eyebrow">
-              Module {moduleData.order_index} · Lesson {lesson.order_index}
-            </div>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-semibold text-stone-900 dark:text-stone-50 tracking-tight uppercase">
-              {lesson.title}
-            </h1>
-          </div>
-          <p className="cb-caption sm:text-right">
-            {lesson.order_index} of {allLessons.length}
-          </p>
+      <RightRailCard title="Sessions">
+        <div className="space-y-2">
+          {allLessons.map((l) => {
+            const st = statusMap.get(l.id) ?? "locked";
+            const locked = st === "locked";
+            return (
+              <LessonRailRow
+                key={l.id}
+                lessonSlug={l.slug}
+                title={l.title}
+                orderIndex={l.order_index}
+                status={st}
+                isCurrent={l.id === lesson.id}
+                locked={locked}
+              />
+            );
+          })}
         </div>
+      </RightRailCard>
 
-        {lesson.description && (
-          <p className="mt-3 cb-body max-w-3xl">{lesson.description}</p>
-        )}
-      </div>
+      <RightRailCard title="Focus">
+        <p className="cb-caption leading-relaxed">
+          Single-session focus. Let the video land, then move when you&apos;re
+          ready.
+        </p>
+      </RightRailCard>
+    </>
+  );
 
-      <section className="cb-panel p-4 sm:p-5">
-        {isCompleted ? (
-          <VimeoPlayer
-            videoUrl={lesson.video_url}
-            videoProvider={lesson.video_provider}
-            title={lesson.title}
-          />
-        ) : (
-          <LessonAutoCompleteVideo
-            lessonId={lesson.id}
-            videoUrl={lesson.video_url}
-            videoProvider={lesson.video_provider}
-            title={lesson.title}
-            isCompleted={isCompleted}
-          />
-        )}
+  const main = (
+    <>
+      <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[0_1px_0_rgba(28,25,23,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="p-4 sm:p-5">
+          {isCompleted ? (
+            <VimeoPlayer
+              videoUrl={lesson.video_url}
+              videoProvider={lesson.video_provider}
+              title={lesson.title}
+            />
+          ) : (
+            <LessonAutoCompleteVideo
+              lessonId={lesson.id}
+              videoUrl={lesson.video_url}
+              videoProvider={lesson.video_provider}
+              title={lesson.title}
+              isCompleted={isCompleted}
+            />
+          )}
+        </div>
       </section>
+
+      {lessonNotes && (
+        <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
+          <div className="cb-eyebrow">Session notes</div>
+          <p className="mt-3 cb-body">{lessonNotes}</p>
+        </section>
+      )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-h-[42px]">
@@ -129,21 +247,19 @@ export default async function LessonPage({ params }: Props) {
       </div>
 
       <nav
-        className="flex flex-col gap-4 border-t border-stone-200/70 pt-8 sm:flex-row sm:items-center sm:justify-between"
+        className="flex flex-col gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between"
         aria-label="Lesson navigation"
       >
         <div>
           {prevLesson ? (
             <Link
               href={`/lessons/${prevLesson.slug}`}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-stone-600 dark:text-stone-200 hover:text-stone-900 dark:hover:text-stone-50"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
             >
-              Previous: {prevLesson.title}
+              ← Previous: {prevLesson.title}
             </Link>
           ) : (
-            <span className="text-sm text-stone-400 dark:text-stone-300">
-              No previous lesson
-            </span>
+            <span className="text-sm text-[var(--muted)] opacity-80">No previous lesson</span>
           )}
         </div>
         <div className="text-right">
@@ -162,16 +278,34 @@ export default async function LessonPage({ params }: Props) {
               Take module exam
             </Link>
           ) : isLastLesson ? (
-            <p className="text-sm text-stone-500 dark:text-stone-400">
+            <p className="text-sm text-[var(--muted)]">
               Complete this lesson to unlock the module exam.
             </p>
           ) : (
-            <span className="text-sm text-stone-400 dark:text-stone-300">
-              No next lesson
-            </span>
+            <span className="text-sm text-[var(--muted)] opacity-80">No next lesson</span>
           )}
         </div>
       </nav>
+    </>
+  );
+
+  return (
+    <div>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Academy", href: "/modules" },
+          { label: moduleData.title, href: `/modules/${moduleData.slug}` },
+          { label: lesson.title },
+        ]}
+        eyebrow={`Module ${moduleData.order_index} · Lesson ${lesson.order_index}`}
+        title={lesson.title}
+        meta={
+          <span className="cb-caption">
+            {lesson.order_index} of {allLessons.length}
+          </span>
+        }
+      />
+      <AppPageLayout main={main} rail={rail} />
     </div>
   );
 }

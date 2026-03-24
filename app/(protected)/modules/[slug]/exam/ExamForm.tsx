@@ -60,7 +60,7 @@ export function ExamForm({
     return (
       <div className="cb-panel p-8">
         <div className="cb-eyebrow">Result</div>
-        <h2 className="mt-3 text-3xl font-semibold text-stone-900 dark:text-stone-50 tracking-tight">
+        <h2 className="mt-3 text-3xl font-semibold text-[var(--foreground)] tracking-tight">
           Score: {result.score}%
         </h2>
 
@@ -116,14 +116,14 @@ export function ExamForm({
             <legend className="cb-eyebrow">
               Question {index + 1} of {questions.length}
             </legend>
-            <p className="mt-2 text-lg font-semibold text-stone-900 dark:text-stone-50 leading-snug">
+            <p className="mt-2 text-lg font-semibold text-[var(--foreground)] leading-snug">
               {q.question}
             </p>
             <div className="mt-4 space-y-2">
               {q.options.map((option) => (
                 <label
                   key={option}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 bg-white p-4 hover:bg-stone-50 transition-colors has-[:checked]:border-stone-900 has-[:checked]:bg-stone-50"
+                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:bg-[color-mix(in_oklab,var(--card)_85%,var(--muted)_15%)] has-[:checked]:border-[var(--foreground)] has-[:checked]:bg-[color-mix(in_oklab,var(--card)_78%,var(--muted)_22%)]"
                 >
                   <input
                     type="radio"
@@ -133,9 +133,9 @@ export function ExamForm({
                     onChange={() =>
                       setAnswers((prev) => ({ ...prev, [q.id]: option }))
                     }
-                    className="mt-0.5 h-4 w-4 border-stone-300 text-stone-900 dark:text-stone-50 focus:ring-stone-500"
+                    className="mt-0.5 h-4 w-4 border-[var(--border)] text-[var(--foreground)] focus:ring-[color-mix(in_oklab,var(--foreground)_35%,transparent)]"
                   />
-                  <span className="text-stone-800 hover:text-stone-900 dark:text-stone-200 dark:hover:text-stone-900 font-medium">
+                  <span className="font-medium text-[var(--foreground)]">
                     {option}
                   </span>
                 </label>
