@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarNavItem } from "@/components/SidebarNavItem";
+import { PageLoadOverlay } from "@/components/PageLoadOverlay";
 
 const nav = [
   {
@@ -106,7 +107,10 @@ function SidebarContent({
         </div>
       )}
 
-      <nav className="mt-8 flex flex-1 flex-col gap-1" aria-label="Main">
+      <nav
+        className="mt-8 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain"
+        aria-label="Main"
+      >
         {nav.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -176,9 +180,9 @@ export function AppShell({
   }, [mobileOpen]);
 
   return (
-    <div className="flex min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      {/* Desktop sidebar */}
-      <aside className="relative hidden w-[272px] shrink-0 border-r border-[var(--border)] bg-[var(--background)] md:flex md:flex-col">
+    <div className="flex h-[100dvh] max-h-[100dvh] min-h-0 w-full overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
+      {/* Desktop sidebar: vaste viewporthoogte; alleen main rechts scrollt */}
+      <aside className="relative hidden h-full min-h-0 w-[272px] shrink-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--background)] md:flex">
         <div className="flex h-full min-h-0 flex-col px-5 py-7">
           <SidebarContent
             studentName={studentName}
@@ -196,8 +200,8 @@ export function AppShell({
             className="fixed inset-0 z-40 bg-stone-900/35 backdrop-blur-[2px] md:hidden"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 z-50 flex w-[min(300px,88vw)] flex-col border-r border-[var(--border)] bg-[var(--background)] shadow-2xl md:hidden">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+          <aside className="fixed inset-y-0 left-0 z-50 flex h-[100dvh] max-h-[100dvh] w-[min(300px,88vw)] flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--background)] shadow-2xl md:hidden">
+            <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3">
               <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
                 Menu
               </span>
@@ -209,7 +213,7 @@ export function AppShell({
                 Close
               </button>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-6">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-6">
               <SidebarContent
                 studentName={studentName}
                 onNavigate={() => setMobileOpen(false)}
@@ -219,8 +223,8 @@ export function AppShell({
         </>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,white)] px-4 py-3 backdrop-blur-md md:hidden dark:bg-[color-mix(in_oklab,var(--background)_92%,#0c0a09)]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="sticky top-0 z-30 flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,white)] px-4 py-3 backdrop-blur-md md:hidden dark:bg-[color-mix(in_oklab,var(--background)_92%,#0c0a09)]">
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
@@ -250,10 +254,10 @@ export function AppShell({
 
         <main
           id="mobile-nav"
-          className="min-h-[calc(100dvh-56px)] flex-1 overflow-y-auto md:min-h-screen"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
         >
           <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-            {children}
+            <PageLoadOverlay>{children}</PageLoadOverlay>
           </div>
         </main>
       </div>
