@@ -6,7 +6,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Skip all of `/_next/*` (static files, webpack, HMR, etc.) so session logic never touches asset requests.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

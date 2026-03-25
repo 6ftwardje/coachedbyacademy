@@ -1,14 +1,7 @@
 /**
- * Admin Supabase client (service role).
- * Use only in server-side code when you need to bypass RLS.
- * Not used in phase 1; create when needed (e.g. student bootstrap from backend).
+ * Admin data access uses `@/lib/supabase/server` (anon key + user session) with RLS policies
+ * for `access_level = 3` — see `supabase/migrations/*_admin_rls_policies.sql`.
+ *
+ * A service-role client is not required for the admin UI. You can still add
+ * `createClient(url, SUPABASE_SERVICE_ROLE_KEY)` here for one-off server scripts if needed.
  */
-
-// import { createClient } from "@supabase/supabase-js";
-//
-// export function createAdminClient() {
-//   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-//   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-//   if (!url || !serviceRoleKey) throw new Error("Missing admin Supabase env");
-//   return createClient(url, serviceRoleKey);
-// }
