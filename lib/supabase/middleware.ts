@@ -6,7 +6,7 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // In test environment mogen we niet terugvallen naar `/login`.
+  // In test environment mogen we niet terugvallen naar `/`.
   // Zo kunnen we de UI/flow testen zonder echte Supabase sessies.
   if (process.env.NODE_ENV === "test") {
     return supabaseResponse;
@@ -37,6 +37,14 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+
+  if (pathname === "/" && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   const isProtected =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/modules") ||
@@ -46,7 +54,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/";
     url.searchParams.set("redirectedFrom", pathname);
     return NextResponse.redirect(url);
   }

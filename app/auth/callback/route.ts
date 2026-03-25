@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const redirectToNext = () => NextResponse.redirect(`${origin}${next}`);
   const redirectToLogin = () =>
-    NextResponse.redirect(`${origin}/login?error=auth`);
+    NextResponse.redirect(`${origin}/?error=auth`);
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return isTestEnv ? redirectToNext() : redirectToLogin();

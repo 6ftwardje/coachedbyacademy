@@ -20,11 +20,11 @@ export default async function ProtectedLayout({
   const { student, error } = await ensureCurrentStudent();
 
   if (error) {
-    redirect("/login?redirectedFrom=" + encodeURIComponent("/dashboard"));
+    redirect("/?redirectedFrom=" + encodeURIComponent("/dashboard"));
   }
 
   if (!student) {
-    redirect("/login?redirectedFrom=" + encodeURIComponent("/dashboard"));
+    redirect("/?redirectedFrom=" + encodeURIComponent("/dashboard"));
   }
 
   return (

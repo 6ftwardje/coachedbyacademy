@@ -33,7 +33,7 @@ export async function requireAdmin(): Promise<{ actorStudent: Student }> {
 
   const { student, error } = await getCurrentStudent();
   if (error || !student) {
-    redirect("/login?redirectedFrom=" + encodeURIComponent("/admin"));
+    redirect("/?redirectedFrom=" + encodeURIComponent("/admin"));
   }
   if (student.access_level !== ADMIN_ACCESS_LEVEL) {
     notFound();
