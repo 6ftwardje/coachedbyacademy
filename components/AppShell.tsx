@@ -84,9 +84,6 @@ function SidebarContent({
             loading="eager"
           />
         </Link>
-        <p className="mt-3 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">
-          Academy
-        </p>
       </div>
 
       {studentName && (

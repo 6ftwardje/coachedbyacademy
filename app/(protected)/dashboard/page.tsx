@@ -178,43 +178,6 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="cb-panel p-5 sm:p-6 lg:p-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="cb-eyebrow">Academy overview</div>
-            <p className="mt-2 text-sm font-semibold text-[var(--foreground)]">
-              Library scale and what’s ahead.
-            </p>
-          </div>
-          <dl className="grid grid-cols-3 gap-6 sm:gap-10">
-            <div>
-              <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
-                Published
-              </dt>
-              <dd className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
-                {stats.publishedModules}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
-                Lessons
-              </dt>
-              <dd className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
-                {stats.totalLessons}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
-                Total modules
-              </dt>
-              <dd className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
-                {stats.totalModules}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
       <ContentSection
         eyebrow="Current focus"
         title="Training block"
