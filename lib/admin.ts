@@ -20,3 +20,16 @@ export {
   markStudentAcademyLessonsComplete,
 } from "@/lib/admin/progress";
 export { getExamSummariesByModuleForStudent } from "@/lib/admin/exams";
+export {
+  createLessonAdmin,
+  createModuleAdmin,
+  deleteEmptyModuleAdmin,
+  deleteLessonAdmin,
+  listModuleVideoBlocksAdmin,
+  listLessonsForVideoAdmin,
+  listModulesForVideoAdmin,
+  getLessonForVideoAdmin,
+  updateLessonContentAdmin,
+  updateLessonVideoAdmin,
+  updateModuleAdmin,
+} from "@/lib/admin/videos";

@@ -35,6 +35,21 @@ const adminNav = [
       </svg>
     ),
   },
+  {
+    href: "/admin/videos",
+    label: "Videos",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M4.5 6.5h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2ZM16.5 10l5-2.5v9l-5-2.5"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
 ];
 
 function SidebarContent({

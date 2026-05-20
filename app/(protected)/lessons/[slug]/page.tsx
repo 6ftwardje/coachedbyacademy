@@ -215,6 +215,8 @@ export default async function LessonPage({ params }: Props) {
             <VimeoPlayer
               videoUrl={lesson.video_url}
               videoProvider={lesson.video_provider}
+              muxPlaybackId={lesson.mux_playback_id}
+              muxPlaybackPolicy={lesson.mux_playback_policy}
               title={lesson.title}
             />
           ) : (
@@ -222,6 +224,8 @@ export default async function LessonPage({ params }: Props) {
               lessonId={lesson.id}
               videoUrl={lesson.video_url}
               videoProvider={lesson.video_provider}
+              muxPlaybackId={lesson.mux_playback_id}
+              muxPlaybackPolicy={lesson.mux_playback_policy}
               title={lesson.title}
               isCompleted={isCompleted}
             />

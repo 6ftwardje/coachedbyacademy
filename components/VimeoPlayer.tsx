@@ -1,21 +1,45 @@
 "use client";
 
+import MuxPlayer from "@mux/mux-player-react";
 import { extractVimeoId, getVimeoEmbedUrl } from "@/lib/vimeo";
 import { useEffect, useMemo, useRef } from "react";
 
 type Props = {
   videoUrl: string | null;
   videoProvider?: string;
+  muxPlaybackId?: string | null;
+  muxPlaybackPolicy?: "public" | "signed";
   title?: string;
   onEnded?: (() => void) | null;
 };
 
+function extractMuxPlaybackId(
+  videoUrl: string | null,
+  muxPlaybackId?: string | null
+): string | null {
+  if (muxPlaybackId?.trim()) return muxPlaybackId.trim();
+  if (!videoUrl) return null;
+
+  const trimmed = videoUrl.trim();
+  if (!trimmed) return null;
+
+  const streamUrl = /stream\.mux\.com\/([^/?#]+)\.m3u8/i.exec(trimmed);
+  if (streamUrl?.[1]) return streamUrl[1];
+
+  if (/^[A-Za-z0-9_-]+$/.test(trimmed)) return trimmed;
+  return null;
+}
+
 export function VimeoPlayer({
   videoUrl,
   videoProvider = "vimeo",
+  muxPlaybackId,
+  muxPlaybackPolicy = "public",
   title,
   onEnded = null,
 }: Props) {
+  const muxId =
+    videoProvider === "mux" ? extractMuxPlaybackId(videoUrl, muxPlaybackId) : null;
   const canUseVimeo =
     videoProvider === "vimeo" && videoUrl && videoUrl.trim().length > 0;
   const videoId = canUseVimeo ? extractVimeoId(videoUrl) : null;
@@ -79,6 +103,20 @@ export function VimeoPlayer({
       }
     };
   }, [onEnded, shouldListen, videoId]);
+
+  if (muxId && muxPlaybackPolicy === "public") {
+    return (
+      <div className="aspect-video w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-900">
+        <MuxPlayer
+          playbackId={muxId}
+          videoTitle={title ?? "Lesson video"}
+          className="h-full w-full"
+          onEnded={onEnded ?? undefined}
+          streamType="on-demand"
+        />
+      </div>
+    );
+  }
 
   if (!videoId) {
     return (

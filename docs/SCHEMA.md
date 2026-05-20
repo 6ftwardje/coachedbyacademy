@@ -26,7 +26,7 @@ Run it with Supabase CLI (e.g. `supabase db push`) or apply the file in the SQL 
 |-------|--------|
 | **students** | Links Supabase Auth (`auth_user_id`) to a stable app identity (`id`). Holds profile (name, phone, email), `access_level` for future gating, and `last_seen` for activity. |
 | **modules** | Top-level curriculum units (e.g. “Training & Periodisation”). `order_index` defines sequence; `slug` for URLs; `is_published` for draft/live. |
-| **lessons** | Content inside a module (e.g. video lessons). `order_index` per module drives lesson order and locking (complete lesson N before N+1). `video_url` / `video_provider` support Vimeo (or others later). |
+| **lessons** | Content inside a module (e.g. video lessons). `order_index` per module drives lesson order and locking (complete lesson N before N+1). `video_url` / `video_provider` support legacy Vimeo and Mux playback. Mux uploads store `mux_asset_id`, `mux_playback_id`, `mux_playback_policy`, `mux_status`, `mux_upload_id`, and `mux_error_message`. |
 | **exams** | One exam per module (v1). `passing_score` (0–100) defines what “passed” means for unlocking the next module. |
 | **exam_questions** | Questions for an exam. `options` is a JSON array of answer strings; `correct_answer` stores the correct option value for scoring. |
 | **exam_results** | One row per attempt. Stores `score`, `passed`, and `submitted_at`. No unique on `(student_id, exam_id)` so retakes are allowed. |

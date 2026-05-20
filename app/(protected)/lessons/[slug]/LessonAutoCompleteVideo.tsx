@@ -9,12 +9,16 @@ export function LessonAutoCompleteVideo({
   lessonId,
   videoUrl,
   videoProvider,
+  muxPlaybackId,
+  muxPlaybackPolicy,
   title,
   isCompleted,
 }: {
   lessonId: number;
   videoUrl: string | null;
   videoProvider?: string;
+  muxPlaybackId?: string | null;
+  muxPlaybackPolicy?: "public" | "signed";
   title?: string;
   isCompleted: boolean;
 }) {
@@ -44,6 +48,8 @@ export function LessonAutoCompleteVideo({
       <VimeoPlayer
         videoUrl={videoUrl}
         videoProvider={videoProvider}
+        muxPlaybackId={muxPlaybackId}
+        muxPlaybackPolicy={muxPlaybackPolicy}
         title={title}
         onEnded={handleEnded}
       />
@@ -57,4 +63,3 @@ export function LessonAutoCompleteVideo({
     </div>
   );
 }
-

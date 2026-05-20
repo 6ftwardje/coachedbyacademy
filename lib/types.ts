@@ -34,6 +34,12 @@ export type Lesson = {
   video_provider: string;
   video_duration_seconds: number | null;
   thumbnail_url: string | null;
+  mux_asset_id: string | null;
+  mux_playback_id: string | null;
+  mux_playback_policy: "public" | "signed";
+  mux_status: "preparing" | "ready" | "errored" | null;
+  mux_upload_id: string | null;
+  mux_error_message: string | null;
   order_index: number;
   is_published: boolean;
   created_at: string;
