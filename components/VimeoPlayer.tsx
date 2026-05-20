@@ -4,6 +4,8 @@ import MuxPlayer from "@mux/mux-player-react";
 import { extractVimeoId, getVimeoEmbedUrl } from "@/lib/vimeo";
 import { useEffect, useMemo, useRef } from "react";
 
+const COACHEDBY_RED = "#f50101";
+
 type Props = {
   videoUrl: string | null;
   videoProvider?: string;
@@ -106,11 +108,14 @@ export function VimeoPlayer({
 
   if (muxId && muxPlaybackPolicy === "public") {
     return (
-      <div className="aspect-video w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-900">
+      <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[color-mix(in_oklab,#f50101_34%,var(--border)_66%)] bg-stone-950 shadow-[0_0_0_1px_rgba(245,1,1,0.06),0_16px_42px_rgba(28,25,23,0.14)]">
         <MuxPlayer
           playbackId={muxId}
           videoTitle={title ?? "Lesson video"}
           className="h-full w-full"
+          primaryColor="#ffffff"
+          secondaryColor="#0c0a09"
+          accentColor={COACHEDBY_RED}
           onEnded={onEnded ?? undefined}
           streamType="on-demand"
         />
