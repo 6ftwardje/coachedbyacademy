@@ -12,6 +12,7 @@ import { asText } from "@/lib/as-text";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { RightRailCard } from "@/components/layout/RightRailCard";
+import { CourseThumbnail } from "@/components/CourseThumbnail";
 import type { LessonStatus } from "@/lib/types";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -23,6 +24,7 @@ function LessonRailRow({
   status,
   isCurrent,
   locked,
+  thumbnailUrl,
 }: {
   lessonSlug: string;
   title: string;
@@ -30,6 +32,7 @@ function LessonRailRow({
   status: LessonStatus;
   isCurrent: boolean;
   locked: boolean;
+  thumbnailUrl?: string | null;
 }) {
   const label =
     status === "completed"
@@ -47,9 +50,13 @@ function LessonRailRow({
             : "bg-[color-mix(in_oklab,var(--background)_92%,var(--muted)_8%)] opacity-70"
         }`}
       >
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--card)] text-xs font-semibold text-[var(--muted)]">
-          {orderIndex}
-        </span>
+        <CourseThumbnail
+          src={thumbnailUrl}
+          title={title}
+          eyebrow={`${orderIndex}`}
+          className="h-12 w-16 shrink-0 rounded-lg"
+          muted
+        />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-[var(--muted)] line-clamp-2">
             {title}
@@ -71,15 +78,13 @@ function LessonRailRow({
           : "border-[var(--border)] bg-[var(--card)] hover:border-[color-mix(in_oklab,var(--foreground)_30%,var(--border)_70%)]"
       }`}
     >
-      <span
-        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-semibold ${
-          isCurrent
-            ? "border-[color-mix(in_oklab,var(--background)_35%,transparent)] bg-[color-mix(in_oklab,var(--background)_18%,transparent)] text-[var(--background)]"
-            : "border-[var(--border)] bg-[color-mix(in_oklab,var(--card)_92%,var(--border)_8%)] text-[var(--muted)]"
-        }`}
-      >
-        {orderIndex}
-      </span>
+      <CourseThumbnail
+        src={thumbnailUrl}
+        title={title}
+        eyebrow={`${orderIndex}`}
+        className="h-12 w-16 shrink-0 rounded-lg"
+        muted={isCurrent}
+      />
       <div className="min-w-0">
         <div
           className={`text-sm font-semibold leading-snug line-clamp-2 ${
@@ -192,6 +197,7 @@ export default async function LessonPage({ params }: Props) {
                 status={st}
                 isCurrent={l.id === lesson.id}
                 locked={locked}
+                thumbnailUrl={l.thumbnail_url}
               />
             );
           })}

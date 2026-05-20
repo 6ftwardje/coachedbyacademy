@@ -8,12 +8,17 @@ import {
   adminCreateLessonMuxUpload,
   adminCreateModule,
   adminCreateMuxUpload,
+  adminCreateThumbnailUpload,
   adminDeleteLesson,
   adminDeleteModule,
   adminSyncMuxUpload,
   adminUpdateLesson,
+  adminUpdateLessonThumbnail,
   adminUpdateModule,
+  adminUpdateModuleThumbnail,
 } from "@/app/actions/admin/videos";
+import { CourseThumbnail } from "@/components/CourseThumbnail";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { AdminLessonVideoRow, AdminModuleVideoBlock } from "@/lib/admin/videos";
 import type { Module } from "@/lib/types";
 
@@ -137,9 +142,21 @@ function putFileWithProgress(
   });
 }
 
-function ModuleFields({ module }: { module?: Module }) {
+function ModuleFields({
+  module,
+  onThumbnailFileChange,
+}: {
+  module?: Module;
+  onThumbnailFileChange: (file: File | null) => void;
+}) {
   return (
     <div className="grid gap-3">
+      <ThumbnailField
+        title={module?.title ?? "Module thumbnail"}
+        currentUrl={module?.thumbnail_url}
+        label="Module thumbnail"
+        onFileChange={onThumbnailFileChange}
+      />
       <label className="space-y-1.5">
         <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Title</span>
         <input name="title" defaultValue={module?.title ?? ""} required className={fieldClass()} />
@@ -174,13 +191,21 @@ function LessonFields({
   lesson,
   modules,
   defaultModuleId,
+  onThumbnailFileChange,
 }: {
   lesson?: AdminLessonVideoRow;
   modules: Module[];
   defaultModuleId?: number;
+  onThumbnailFileChange: (file: File | null) => void;
 }) {
   return (
     <div className="grid gap-3">
+      <ThumbnailField
+        title={lesson?.title ?? "Lesson thumbnail"}
+        currentUrl={lesson?.thumbnail_url}
+        label="Lesson thumbnail"
+        onFileChange={onThumbnailFileChange}
+      />
       <div className="grid gap-3 sm:grid-cols-[1fr_110px]">
         <label className="space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Module</span>
@@ -214,6 +239,84 @@ function LessonFields({
         <input name="is_published" type="checkbox" defaultChecked={lesson?.is_published ?? false} className="h-4 w-4" />
         <span className="text-sm font-semibold text-[var(--foreground)]">Published</span>
       </label>
+    </div>
+  );
+}
+
+function ThumbnailField({
+  title,
+  currentUrl,
+  label,
+  onFileChange,
+}: {
+  title: string;
+  currentUrl?: string | null;
+  label: string;
+  onFileChange: (file: File | null) => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl ?? null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    setPreviewUrl(currentUrl ?? null);
+  }, [currentUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    };
+  }, []);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_86%,var(--card)_14%)]">
+      <CourseThumbnail
+        src={previewUrl}
+        title={title}
+        eyebrow="Thumbnail"
+        className="aspect-[16/9] w-full"
+      />
+      <div className="grid gap-3 p-3">
+        <label className="space-y-1.5">
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">{label} URL</span>
+          <input
+            name="thumbnail_url"
+            defaultValue={currentUrl ?? ""}
+            placeholder="https://..."
+            className={fieldClass()}
+            onChange={(event) => setPreviewUrl(event.currentTarget.value.trim() || null)}
+          />
+        </label>
+        <label className="space-y-1.5">
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Upload image</span>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            className="block w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--foreground)] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[var(--background)]"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0] ?? null;
+              onFileChange(file);
+              if (objectUrlRef.current) {
+                URL.revokeObjectURL(objectUrlRef.current);
+                objectUrlRef.current = null;
+              }
+              if (!file) {
+                setPreviewUrl(currentUrl ?? null);
+                return;
+              }
+              const nextUrl = URL.createObjectURL(file);
+              objectUrlRef.current = nextUrl;
+              setPreviewUrl(nextUrl);
+            }}
+          />
+        </label>
+        <p className="text-xs leading-relaxed text-[var(--muted)]">
+          JPG, PNG, WebP, or AVIF. Best crop: 16:9.
+        </p>
+      </div>
     </div>
   );
 }
@@ -305,6 +408,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [panel, setPanel] = useState<PanelState>({ type: "empty" });
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -366,21 +470,92 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
     setProgress(null);
   }
 
+  function resetPanel(nextPanel: PanelState) {
+    resetFeedback();
+    setThumbnailFile(null);
+    setPanel(nextPanel);
+  }
+
   function refresh(messageText?: string) {
     if (messageText) setMessage(messageText);
     router.refresh();
   }
 
+  async function uploadThumbnailForEntity({
+    target,
+    entityId,
+    file,
+  }: {
+    target: "modules" | "lessons";
+    entityId: number;
+    file: File;
+  }): Promise<boolean> {
+    setMessage("Preparing thumbnail upload...");
+    const signed = await adminCreateThumbnailUpload(target, entityId, {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+
+    if (!signed.success || !signed.path || !signed.token || !signed.publicUrl) {
+      setError(signed.error ?? "Could not prepare thumbnail upload.");
+      return false;
+    }
+
+    setMessage("Uploading thumbnail...");
+    const supabase = createBrowserSupabaseClient();
+    const { error: uploadError } = await supabase.storage
+      .from("course-thumbnails")
+      .uploadToSignedUrl(signed.path, signed.token, file, {
+        cacheControl: "31536000",
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      setError(uploadError.message);
+      return false;
+    }
+
+    setMessage("Saving thumbnail...");
+    const updated =
+      target === "modules"
+        ? await adminUpdateModuleThumbnail(entityId, signed.publicUrl)
+        : await adminUpdateLessonThumbnail(entityId, signed.publicUrl);
+
+    if (!updated.success) {
+      setError(updated.error ?? "Could not save thumbnail.");
+      return false;
+    }
+
+    setThumbnailFile(null);
+    return true;
+  }
+
   function runModuleSave(formData: FormData, module?: Module) {
     resetFeedback();
+    const selectedThumbnailFile = thumbnailFile;
     startTransition(async () => {
-      const result = module
-        ? await adminUpdateModule(module.id, formData)
-        : await adminCreateModule(formData);
+      const result: { success: boolean; error?: string; moduleId?: number } =
+        module
+          ? await adminUpdateModule(module.id, formData)
+          : await adminCreateModule(formData);
       if (!result.success) {
         setError(result.error ?? "Could not save module.");
         return;
       }
+
+      const moduleId = module?.id ?? result.moduleId;
+      if (selectedThumbnailFile && moduleId) {
+        const uploaded = await uploadThumbnailForEntity({
+          target: "modules",
+          entityId: moduleId,
+          file: selectedThumbnailFile,
+        });
+        if (!uploaded) return;
+      }
+
+      setThumbnailFile(null);
       setPanel({ type: "empty" });
       refresh(module ? "Module saved." : "Module created.");
     });
@@ -389,6 +564,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
   function runLessonSave(formData: FormData, lesson?: AdminLessonVideoRow) {
     resetFeedback();
     const file = fileInputRef.current?.files?.[0] ?? null;
+    const selectedThumbnailFile = thumbnailFile;
 
     startTransition(async () => {
       if (lesson) {
@@ -398,11 +574,21 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
           return;
         }
 
+        if (selectedThumbnailFile) {
+          const uploaded = await uploadThumbnailForEntity({
+            target: "lessons",
+            entityId: lesson.id,
+            file: selectedThumbnailFile,
+          });
+          if (!uploaded) return;
+        }
+
         if (file) {
           await uploadForExistingLesson(lesson.id, file);
           return;
         }
 
+        setThumbnailFile(null);
         setPanel({ type: "empty" });
         refresh("Lesson saved.");
         return;
@@ -418,10 +604,22 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
           return;
         }
         try {
+          if (selectedThumbnailFile) {
+            const uploaded = await uploadThumbnailForEntity({
+              target: "lessons",
+              entityId: created.lessonId,
+              file: selectedThumbnailFile,
+            });
+            if (!uploaded) {
+              setProgress(null);
+              return;
+            }
+          }
           setMessage("Uploading to Mux...");
           await putFileWithProgress(created.uploadUrl, file, setProgress);
           setMessage("Upload complete. Syncing status...");
           await adminSyncMuxUpload(created.lessonId, created.uploadId);
+          setThumbnailFile(null);
           setPanel({ type: "empty" });
           setProgress(null);
           refresh("Lesson created. Mux is processing the video.");
@@ -437,6 +635,15 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
         setError(created.error ?? "Could not create lesson.");
         return;
       }
+      if (selectedThumbnailFile && created.lessonId) {
+        const uploaded = await uploadThumbnailForEntity({
+          target: "lessons",
+          entityId: created.lessonId,
+          file: selectedThumbnailFile,
+        });
+        if (!uploaded) return;
+      }
+      setThumbnailFile(null);
       setPanel({ type: "empty" });
       refresh("Lesson created.");
     });
@@ -457,6 +664,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
       await putFileWithProgress(created.uploadUrl, file, setProgress);
       setMessage("Upload complete. Syncing status...");
       await adminSyncMuxUpload(lessonId, created.uploadId);
+      setThumbnailFile(null);
       setPanel({ type: "empty" });
       setProgress(null);
       refresh("Video uploaded. Mux is processing it.");
@@ -480,6 +688,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
         return next;
       });
       if (panel.type === "edit-lesson" && panel.lesson.id === lesson.id) {
+        setThumbnailFile(null);
         setPanel({ type: "empty" });
       }
       refresh("Lesson deleted.");
@@ -506,6 +715,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
         return next;
       });
       if (panel.type === "edit-module" && panel.module.id === module.id) {
+        setThumbnailFile(null);
         setPanel({ type: "empty" });
       }
       refresh("Module deleted.");
@@ -550,8 +760,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
               type="button"
               className="cb-btn cb-btn-secondary text-sm"
               onClick={() => {
-                resetFeedback();
-                setPanel({ type: "create-module" });
+                resetPanel({ type: "create-module" });
               }}
             >
               <Icon name="plus" /> Module
@@ -561,8 +770,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
               className="cb-btn cb-btn-primary text-sm"
               disabled={modules.length === 0}
               onClick={() => {
-                resetFeedback();
-                setPanel({ type: "create-lesson" });
+                resetPanel({ type: "create-lesson" });
               }}
             >
               <Icon name="plus" /> Lesson
@@ -581,26 +789,31 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
-                    className="min-w-0 text-left"
+                    className="grid min-w-0 gap-3 text-left sm:grid-cols-[104px_minmax(0,1fr)] sm:items-center"
                     onClick={() => {
-                      resetFeedback();
-                      setPanel({ type: "edit-module", module });
+                      resetPanel({ type: "edit-module", module });
                     }}
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--border)] text-xs font-bold text-[var(--muted)]">
-                        {module.order_index}
-                      </span>
-                      <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
-                        {module.title}
-                      </h3>
-                      <span className={module.is_published ? "cb-badge cb-badge-available" : "cb-badge cb-badge-locked"}>
-                        {module.is_published ? "Published" : "Draft"}
-                      </span>
+                    <CourseThumbnail
+                      src={module.thumbnail_url}
+                      title={module.title}
+                      eyebrow={`M${module.order_index}`}
+                      className="aspect-[16/10] rounded-xl"
+                      muted={!module.is_published}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-base font-semibold text-[var(--foreground)]">
+                          {module.title}
+                        </h3>
+                        <span className={module.is_published ? "cb-badge cb-badge-available" : "cb-badge cb-badge-locked"}>
+                          {module.is_published ? "Published" : "Draft"}
+                        </span>
+                      </div>
+                      {module.short_description ? (
+                        <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">{module.short_description}</p>
+                      ) : null}
                     </div>
-                    {module.short_description ? (
-                      <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">{module.short_description}</p>
-                    ) : null}
                   </button>
                   <div className="flex shrink-0 items-center gap-2">
                     <button
@@ -609,8 +822,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                       aria-label={`Add lesson to ${module.title}`}
                       title="Add lesson"
                       onClick={() => {
-                        resetFeedback();
-                        setPanel({ type: "create-lesson", moduleId: module.id });
+                        resetPanel({ type: "create-lesson", moduleId: module.id });
                       }}
                     >
                       <Icon name="plus" />
@@ -621,8 +833,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                       aria-label={`Edit ${module.title}`}
                       title="Edit module"
                       onClick={() => {
-                        resetFeedback();
-                        setPanel({ type: "edit-module", module });
+                        resetPanel({ type: "edit-module", module });
                       }}
                     >
                       <Icon name="edit" />
@@ -657,27 +868,32 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                         <div key={lesson.id} className="grid gap-3 bg-[color-mix(in_oklab,var(--background)_88%,var(--card)_12%)] px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
                           <button
                             type="button"
-                            className="min-w-0 text-left"
+                            className="grid min-w-0 gap-3 text-left sm:grid-cols-[76px_minmax(0,1fr)] sm:items-center"
                             onClick={() => {
-                              resetFeedback();
-                              setPanel({ type: "edit-lesson", lesson });
+                              resetPanel({ type: "edit-lesson", lesson });
                             }}
                           >
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-md border border-[var(--border)] text-[0.7rem] font-bold text-[var(--muted)]">
-                                {lesson.order_index}
-                              </span>
-                              <span className="truncate text-sm font-semibold text-[var(--foreground)]">
-                                {lesson.title}
-                              </span>
-                              {statusBadge(lesson)}
-                              <span className={lesson.is_published ? "cb-badge cb-badge-available" : "cb-badge cb-badge-locked"}>
-                                {lesson.is_published ? "Published" : "Draft"}
-                              </span>
+                            <CourseThumbnail
+                              src={lesson.thumbnail_url}
+                              title={lesson.title}
+                              eyebrow={`${lesson.order_index}`}
+                              className="aspect-[16/10] rounded-lg"
+                              muted={!lesson.is_published}
+                            />
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="truncate text-sm font-semibold text-[var(--foreground)]">
+                                  {lesson.title}
+                                </span>
+                                {statusBadge(lesson)}
+                                <span className={lesson.is_published ? "cb-badge cb-badge-available" : "cb-badge cb-badge-locked"}>
+                                  {lesson.is_published ? "Published" : "Draft"}
+                                </span>
+                              </div>
+                              {lesson.description ? (
+                                <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">{lesson.description}</p>
+                              ) : null}
                             </div>
-                            {lesson.description ? (
-                              <p className="mt-1 line-clamp-1 text-sm text-[var(--muted)]">{lesson.description}</p>
-                            ) : null}
                           </button>
                           <div className="flex items-center gap-2 md:justify-end">
                             <button
@@ -686,8 +902,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                               aria-label={`Edit ${lesson.title}`}
                               title="Edit lesson"
                               onClick={() => {
-                                resetFeedback();
-                                setPanel({ type: "edit-lesson", lesson });
+                                resetPanel({ type: "edit-lesson", lesson });
                               }}
                             >
                               <Icon name="edit" />
@@ -698,8 +913,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                               aria-label={`Upload video for ${lesson.title}`}
                               title="Upload video"
                               onClick={() => {
-                                resetFeedback();
-                                setPanel({ type: "edit-lesson", lesson });
+                                resetPanel({ type: "edit-lesson", lesson });
                                 window.setTimeout(() => fileInputRef.current?.focus(), 0);
                               }}
                             >
@@ -750,8 +964,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
               type="button"
               className="rounded-lg px-2 py-1 text-sm font-semibold text-[var(--muted)] hover:bg-[color-mix(in_oklab,var(--card)_70%,var(--foreground)_6%)]"
               onClick={() => {
-                resetFeedback();
-                setPanel({ type: "empty" });
+                resetPanel({ type: "empty" });
               }}
             >
               Close
@@ -766,21 +979,21 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
             </p>
           ) : panel.type === "create-module" ? (
             <form action={(formData) => runModuleSave(formData)} className="space-y-4">
-              <ModuleFields />
+              <ModuleFields onThumbnailFileChange={setThumbnailFile} />
               <button type="submit" disabled={pending} className="cb-btn cb-btn-primary w-full justify-center text-sm">
                 {pending ? "Saving..." : "Create module"}
               </button>
             </form>
           ) : panel.type === "edit-module" && selectedModule ? (
             <form action={(formData) => runModuleSave(formData, selectedModule)} className="space-y-4">
-              <ModuleFields module={selectedModule} />
+              <ModuleFields module={selectedModule} onThumbnailFileChange={setThumbnailFile} />
               <button type="submit" disabled={pending} className="cb-btn cb-btn-primary w-full justify-center text-sm">
                 {pending ? "Saving..." : "Save module"}
               </button>
             </form>
           ) : panel.type === "create-lesson" ? (
             <form action={(formData) => runLessonSave(formData)} className="space-y-4">
-              <LessonFields modules={modules} defaultModuleId={panel.moduleId} />
+              <LessonFields modules={modules} defaultModuleId={panel.moduleId} onThumbnailFileChange={setThumbnailFile} />
               <label className="space-y-1.5">
                 <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Video file</span>
                 <input ref={fileInputRef} type="file" accept="video/*" disabled={pending || progress !== null} className="block w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--foreground)] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[var(--background)]" />
@@ -792,7 +1005,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
             </form>
           ) : panel.type === "edit-lesson" && selectedLesson ? (
             <form action={(formData) => runLessonSave(formData, selectedLesson)} className="space-y-4">
-              <LessonFields lesson={selectedLesson} modules={modules} />
+              <LessonFields lesson={selectedLesson} modules={modules} onThumbnailFileChange={setThumbnailFile} />
               <div className="rounded-xl border border-[var(--border)] p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>

@@ -32,6 +32,7 @@ export type ModuleContentInput = {
   slug: string;
   short_description: string | null;
   description: string | null;
+  thumbnail_url: string | null;
   order_index: number;
   is_published: boolean;
 };
@@ -41,6 +42,7 @@ export type LessonContentInput = {
   title: string;
   slug: string;
   description: string | null;
+  thumbnail_url: string | null;
   order_index: number;
   is_published: boolean;
 };

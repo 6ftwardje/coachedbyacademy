@@ -21,8 +21,8 @@ export default async function AdminVideosPage() {
           { label: "Videos" },
         ]}
         eyebrow="Content"
-        title="Modules & videos"
-        description="Create modules, add lessons, upload lesson videos to Mux, and sync processing status back to Supabase."
+        title="Modules, lessons & media"
+        description="Create modules, add lessons, upload thumbnails to Supabase, upload lesson videos to Mux, and sync processing status."
         meta={
           <span className="cb-caption">
             {readyCount} ready · {processingCount} processing · {lessons.length} lessons

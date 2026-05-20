@@ -12,6 +12,7 @@ import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { RightRailCard } from "@/components/layout/RightRailCard";
 import { ContentSection } from "@/components/layout/ContentSection";
 import { LessonStatusBadge } from "@/components/StatusBadge";
+import { CourseThumbnail } from "@/components/CourseThumbnail";
 import { asText } from "@/lib/as-text";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -130,16 +131,24 @@ export default async function ModuleDetailPage({ params }: Props) {
 
   const main = (
     <>
-      <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6 lg:p-8">
-        <div className="cb-eyebrow">Inside this block</div>
-        {moduleIntroText ? (
-          <p className="mt-4 cb-body max-w-3xl">{moduleIntroText}</p>
-        ) : (
-          <p className="mt-4 cb-caption">
-            Work through the sessions below in order. Completion unlocks what’s
-            next.
-          </p>
-        )}
+      <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)]">
+        <CourseThumbnail
+          src={moduleData.thumbnail_url}
+          title={moduleData.title}
+          eyebrow={`Module ${moduleData.order_index}`}
+          className="aspect-[16/8] w-full sm:aspect-[21/9]"
+        />
+        <div className="p-5 sm:p-6 lg:p-8">
+          <div className="cb-eyebrow">Inside this block</div>
+          {moduleIntroText ? (
+            <p className="mt-4 cb-body max-w-3xl">{moduleIntroText}</p>
+          ) : (
+            <p className="mt-4 cb-caption">
+              Work through the sessions below in order. Completion unlocks what’s
+              next.
+            </p>
+          )}
+        </div>
       </section>
 
       <ContentSection
@@ -152,20 +161,23 @@ export default async function ModuleDetailPage({ params }: Props) {
             <p className="cb-caption">No lessons in this module yet.</p>
           </div>
         ) : (
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {lessonsWithStatusList.map((lesson) => {
               const isLocked = lesson.status === "locked";
               const lessonDesc = asText(lesson.description);
               return (
                 <li key={lesson.id} className={isLocked ? "opacity-55" : ""}>
                   {isLocked ? (
-                    <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--card)_88%,var(--muted)_12%)] p-4 sm:p-5">
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex min-w-0 items-start gap-4">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm font-semibold text-[var(--muted)]">
-                            {lesson.order_index}
-                          </span>
-                          <div className="min-w-0">
+                    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--card)_88%,var(--muted)_12%)]">
+                      <div className="grid gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
+                        <CourseThumbnail
+                          src={lesson.thumbnail_url}
+                          title={lesson.title}
+                          eyebrow={`${lesson.order_index}`}
+                          className="aspect-[16/9] w-full sm:aspect-auto sm:h-full sm:min-h-[150px]"
+                          muted
+                        />
+                        <div className="min-w-0 p-4 sm:p-5">
                             <h3 className="font-semibold leading-snug text-[var(--muted)]">
                               {lesson.title}
                             </h3>
@@ -176,20 +188,22 @@ export default async function ModuleDetailPage({ params }: Props) {
                               <LessonStatusBadge status={lesson.status} />
                             </div>
                           </div>
-                        </div>
                       </div>
                     </div>
                   ) : (
                     <Link
                       href={`/lessons/${lesson.slug}`}
-                      className="group block rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:p-5 transition-colors hover:border-[color-mix(in_oklab,var(--foreground)_28%,var(--border)_72%)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_22%,transparent)]"
+                      className="group block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] transition-colors hover:border-[color-mix(in_oklab,var(--foreground)_28%,var(--border)_72%)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_22%,transparent)]"
                     >
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex min-w-0 items-start gap-4">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm font-semibold text-[var(--muted)] transition-colors group-hover:border-[var(--foreground)] group-hover:text-[var(--foreground)]">
-                            {lesson.order_index}
-                          </span>
-                          <div className="min-w-0">
+                      <div className="grid gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
+                        <CourseThumbnail
+                          src={lesson.thumbnail_url}
+                          title={lesson.title}
+                          eyebrow={`${lesson.order_index}`}
+                          className="aspect-[16/9] w-full sm:aspect-auto sm:h-full sm:min-h-[150px]"
+                          imageClassName="group-hover:scale-[1.035]"
+                        />
+                        <div className="min-w-0 p-4 sm:p-5">
                             <h3 className="font-semibold leading-snug text-[var(--foreground)]">
                               {lesson.title}
                             </h3>
@@ -202,7 +216,6 @@ export default async function ModuleDetailPage({ params }: Props) {
                               <LessonStatusBadge status={lesson.status} />
                             </div>
                           </div>
-                        </div>
                       </div>
                     </Link>
                   )}

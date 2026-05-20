@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/access";
 import { logAdminAction } from "@/lib/admin/audit";
+import { createClient } from "@/lib/supabase/server";
 import {
   createLessonAdmin,
   createModuleAdmin,
@@ -26,6 +27,23 @@ type ActionResult<T extends object = object> = T & {
   error?: string;
 };
 
+const THUMBNAIL_BUCKET = "course-thumbnails";
+const MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024;
+const THUMBNAIL_MIME_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/avif": "avif",
+};
+
+type ThumbnailTarget = "modules" | "lessons";
+
+type ThumbnailUploadInput = {
+  name?: string;
+  type?: string;
+  size?: number;
+};
+
 function parseLessonId(value: unknown): number | null {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(n) || n <= 0) return null;
@@ -45,6 +63,23 @@ function asString(value: unknown): string {
 function asNullableString(value: unknown): string | null {
   const text = asString(value);
   return text ? text : null;
+}
+
+function validateThumbnailUpload(input: ThumbnailUploadInput): string | null {
+  if (!input.size || input.size <= 0) {
+    return "Choose a thumbnail image.";
+  }
+  if (input.size > MAX_THUMBNAIL_SIZE) {
+    return "Thumbnail must be smaller than 5 MB.";
+  }
+  if (!input.type || !THUMBNAIL_MIME_EXTENSIONS[input.type]) {
+    return "Thumbnail must be a JPG, PNG, WebP, or AVIF image.";
+  }
+  return null;
+}
+
+function parseThumbnailTarget(value: unknown): ThumbnailTarget | null {
+  return value === "modules" || value === "lessons" ? value : null;
 }
 
 function asBoolean(value: unknown): boolean {
@@ -76,6 +111,7 @@ function readModuleInput(formData: FormData) {
       slug,
       short_description: asNullableString(formData.get("short_description")),
       description: asNullableString(formData.get("description")),
+      thumbnail_url: asNullableString(formData.get("thumbnail_url")),
       order_index: orderIndex,
       is_published: asBoolean(formData.get("is_published")),
     },
@@ -99,6 +135,7 @@ function readLessonInput(formData: FormData) {
       title,
       slug,
       description: asNullableString(formData.get("description")),
+      thumbnail_url: asNullableString(formData.get("thumbnail_url")),
       order_index: orderIndex,
       is_published: asBoolean(formData.get("is_published")),
     },
@@ -112,6 +149,7 @@ function getCorsOrigin(): string {
 function revalidateVideoPaths(lessonSlug?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/videos");
+  revalidatePath("/modules");
   if (lessonSlug) revalidatePath(`/lessons/${lessonSlug}`);
 }
 
@@ -157,6 +195,118 @@ export async function adminCreateMuxUpload(
       error: error instanceof Error ? error.message : "Could not create Mux upload",
     };
   }
+}
+
+export async function adminCreateThumbnailUpload(
+  targetRaw: unknown,
+  entityIdRaw: unknown,
+  fileInput: ThumbnailUploadInput
+): Promise<
+  ActionResult<{ path?: string; token?: string; publicUrl?: string }>
+> {
+  const { actorStudent } = await requireAdmin();
+  const target = parseThumbnailTarget(targetRaw);
+  const entityId = parsePositiveInteger(entityIdRaw);
+  if (!target || !entityId) {
+    return { success: false, error: "Invalid thumbnail target." };
+  }
+
+  const validationError = validateThumbnailUpload(fileInput);
+  if (validationError) return { success: false, error: validationError };
+
+  const db = await createClient();
+  const extension = THUMBNAIL_MIME_EXTENSIONS[fileInput.type ?? ""] ?? "jpg";
+  const path = `${target}/${entityId}/${crypto.randomUUID()}.${extension}`;
+  const { data, error } = await db.storage
+    .from(THUMBNAIL_BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error || !data) {
+    const errorMessage = error?.message ?? "Could not create thumbnail upload.";
+    return {
+      success: false,
+      error: errorMessage.toLowerCase().includes("row-level security")
+        ? "Supabase Storage policy is missing for course-thumbnails. Apply the course thumbnail storage migration, then try again."
+        : errorMessage,
+    };
+  }
+
+  const publicUrl = db.storage.from(THUMBNAIL_BUCKET).getPublicUrl(path).data.publicUrl;
+
+  logAdminAction("content.thumbnail_upload_created", {
+    actorStudentId: actorStudent.id,
+    metadata: { target, entityId, path },
+  });
+
+  return {
+    success: true,
+    path: data.path,
+    token: data.token,
+    publicUrl,
+  };
+}
+
+export async function adminUpdateModuleThumbnail(
+  moduleIdRaw: unknown,
+  thumbnailUrlRaw: unknown
+): Promise<ActionResult> {
+  const { actorStudent } = await requireAdmin();
+  const moduleId = parsePositiveInteger(moduleIdRaw);
+  if (!moduleId) return { success: false, error: "Invalid module." };
+
+  const thumbnailUrl = asNullableString(thumbnailUrlRaw);
+  if (!thumbnailUrl) return { success: false, error: "Thumbnail URL is required." };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("modules")
+    .update({ thumbnail_url: thumbnailUrl })
+    .eq("id", moduleId)
+    .select("id, slug")
+    .maybeSingle();
+
+  if (error) return { success: false, error: error.message };
+  if (!data) return { success: false, error: "Module not found." };
+
+  logAdminAction("content.module_thumbnail_updated", {
+    actorStudentId: actorStudent.id,
+    metadata: { moduleId },
+  });
+
+  revalidateVideoPaths();
+  revalidatePath(`/modules/${data.slug}`);
+  return { success: true };
+}
+
+export async function adminUpdateLessonThumbnail(
+  lessonIdRaw: unknown,
+  thumbnailUrlRaw: unknown
+): Promise<ActionResult> {
+  const { actorStudent } = await requireAdmin();
+  const lessonId = parseLessonId(lessonIdRaw);
+  if (!lessonId) return { success: false, error: "Invalid lesson." };
+
+  const thumbnailUrl = asNullableString(thumbnailUrlRaw);
+  if (!thumbnailUrl) return { success: false, error: "Thumbnail URL is required." };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("lessons")
+    .update({ thumbnail_url: thumbnailUrl })
+    .eq("id", lessonId)
+    .select("id, slug")
+    .maybeSingle();
+
+  if (error) return { success: false, error: error.message };
+  if (!data) return { success: false, error: "Lesson not found." };
+
+  logAdminAction("content.lesson_thumbnail_updated", {
+    actorStudentId: actorStudent.id,
+    metadata: { lessonId },
+  });
+
+  revalidateVideoPaths(data.slug);
+  return { success: true };
 }
 
 export async function adminCreateModule(
@@ -403,7 +553,7 @@ export async function adminSyncMuxUpload(
       video_url: playbackUrl,
       video_duration_seconds:
         typeof asset.duration === "number" ? Math.round(asset.duration) : null,
-      thumbnail_url: getMuxThumbnailUrl(playback?.id ?? null),
+      thumbnail_url: lesson.thumbnail_url ?? getMuxThumbnailUrl(playback?.id ?? null),
       mux_upload_id: upload.id,
       mux_asset_id: asset.id,
       mux_playback_id: playback?.id ?? null,
