@@ -42,3 +42,26 @@ export async function getLessonCountByModuleId(
   if (error) return 0;
   return count ?? 0;
 }
+
+export async function getLessonCountsByModuleIds(
+  moduleIds: number[]
+): Promise<Map<number, number>> {
+  const counts = new Map(moduleIds.map((id) => [id, 0]));
+  if (moduleIds.length === 0) return counts;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lessons")
+    .select("module_id")
+    .in("module_id", moduleIds)
+    .eq("is_published", true);
+
+  if (error) return counts;
+
+  for (const row of data ?? []) {
+    const lesson = row as { module_id: number };
+    counts.set(lesson.module_id, (counts.get(lesson.module_id) ?? 0) + 1);
+  }
+
+  return counts;
+}

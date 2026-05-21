@@ -16,6 +16,29 @@ export async function getExamByModuleId(
   return data as Exam;
 }
 
+export async function getExamsByModuleIds(
+  moduleIds: number[]
+): Promise<Map<number, Exam>> {
+  const map = new Map<number, Exam>();
+  if (moduleIds.length === 0) return map;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("exams")
+    .select("*")
+    .in("module_id", moduleIds)
+    .eq("is_published", true);
+
+  if (error) return map;
+
+  for (const row of data ?? []) {
+    const exam = row as Exam;
+    map.set(exam.module_id, exam);
+  }
+
+  return map;
+}
+
 export async function getExamQuestions(
   examId: number
 ): Promise<ExamQuestion[]> {
@@ -52,6 +75,31 @@ export async function hasPassedExam(
 
   if (error || !data) return false;
   return true;
+}
+
+export async function getPassedExamIdsForStudent(
+  studentId: string,
+  examIds: number[]
+): Promise<Set<number>> {
+  const passedExamIds = new Set<number>();
+  if (examIds.length === 0) return passedExamIds;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("exam_results")
+    .select("exam_id")
+    .eq("student_id", studentId)
+    .eq("passed", true)
+    .in("exam_id", examIds);
+
+  if (error) return passedExamIds;
+
+  for (const row of data ?? []) {
+    const result = row as { exam_id: number };
+    passedExamIds.add(result.exam_id);
+  }
+
+  return passedExamIds;
 }
 
 /**

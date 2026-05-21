@@ -3,8 +3,8 @@ import { ensureCurrentStudent } from "@/lib/students";
 import { getDashboardStats } from "@/lib/dashboard";
 import { getPublishedModules } from "@/lib/modules";
 import { getModuleAccessMap } from "@/lib/module-gate";
-import { getLessonCountByModuleId } from "@/lib/lessons";
-import { getExamByModuleId, hasPassedExam } from "@/lib/exams";
+import { getLessonCountsByModuleIds } from "@/lib/lessons";
+import { getExamsByModuleIds, getPassedExamIdsForStudent } from "@/lib/exams";
 import type { Module } from "@/lib/types";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
@@ -20,9 +20,21 @@ export default async function DashboardPage() {
     getPublishedModules(),
   ]);
 
-  const moduleAccessMap = student
-    ? await getModuleAccessMap(student.id, modules)
-    : new Map<number, boolean>();
+  const moduleIds = modules.map((module) => module.id);
+  const [moduleAccessMap, lessonCountMap, examMap] = await Promise.all([
+    student
+      ? getModuleAccessMap(student.id, modules)
+      : Promise.resolve(new Map<number, boolean>()),
+    getLessonCountsByModuleIds(moduleIds),
+    getExamsByModuleIds(moduleIds),
+  ]);
+
+  const passedExamIds = student
+    ? await getPassedExamIdsForStudent(
+        student.id,
+        [...examMap.values()].map((exam) => exam.id)
+      )
+    : new Set<number>();
 
   const orderedModules = [...modules].sort(
     (a, b) => a.order_index - b.order_index
@@ -33,32 +45,18 @@ export default async function DashboardPage() {
     "locked" | "available" | "completed"
   >();
 
-  if (student) {
-    await Promise.all(
-      orderedModules.map(async (mod) => {
-        const canAccess = moduleAccessMap.get(mod.id) === true;
-        if (!canAccess) {
-          moduleStateMap.set(mod.id, "locked");
-          return;
-        }
-
-        const exam = await getExamByModuleId(mod.id);
-        if (!exam) {
-          moduleStateMap.set(mod.id, "available");
-          return;
-        }
-
-        const passed = await hasPassedExam(student.id, exam.id);
-        moduleStateMap.set(mod.id, passed ? "completed" : "available");
-      })
-    );
-  } else {
-    for (const mod of orderedModules) {
-      moduleStateMap.set(
-        mod.id,
-        moduleAccessMap.get(mod.id) === true ? "available" : "locked"
-      );
+  for (const mod of orderedModules) {
+    const canAccess = moduleAccessMap.get(mod.id) === true;
+    if (!canAccess) {
+      moduleStateMap.set(mod.id, "locked");
+      continue;
     }
+
+    const exam = examMap.get(mod.id);
+    moduleStateMap.set(
+      mod.id,
+      exam && passedExamIds.has(exam.id) ? "completed" : "available"
+    );
   }
 
   const featuredModule =
@@ -67,7 +65,7 @@ export default async function DashboardPage() {
     null;
 
   const featuredLessonCount = featuredModule
-    ? await getLessonCountByModuleId(featuredModule.id)
+    ? lessonCountMap.get(featuredModule.id) ?? 0
     : 0;
 
   const completedModules = orderedModules.filter(

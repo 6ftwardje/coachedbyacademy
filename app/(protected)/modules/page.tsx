@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ensureCurrentStudent } from "@/lib/students";
 import { getPublishedModules } from "@/lib/modules";
-import { getLessonCountByModuleId } from "@/lib/lessons";
+import { getLessonCountsByModuleIds } from "@/lib/lessons";
 import { getModuleAccessMap } from "@/lib/module-gate";
-import { getExamByModuleId, hasPassedExam } from "@/lib/exams";
+import { getExamsByModuleIds, getPassedExamIdsForStudent } from "@/lib/exams";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { RightRailCard } from "@/components/layout/RightRailCard";
@@ -14,38 +14,37 @@ import { asText } from "@/lib/as-text";
 export default async function ModulesPage() {
   const { student } = await ensureCurrentStudent();
   const modules = await getPublishedModules();
-  const lessonCounts = await Promise.all(
-    modules.map((m) => getLessonCountByModuleId(m.id))
-  );
-  const lessonCountMap = new Map(
-    modules.map((module, index) => [module.id, lessonCounts[index] ?? 0])
-  );
+  const moduleIds = modules.map((module) => module.id);
 
-  const moduleAccessMap = student
-    ? await getModuleAccessMap(student.id, modules)
-    : new Map<number, boolean>();
+  const [lessonCountMap, moduleAccessMap, examMap] = await Promise.all([
+    getLessonCountsByModuleIds(moduleIds),
+    student
+      ? getModuleAccessMap(student.id, modules)
+      : Promise.resolve(new Map<number, boolean>()),
+    getExamsByModuleIds(moduleIds),
+  ]);
+
+  const passedExamIds = student
+    ? await getPassedExamIdsForStudent(
+        student.id,
+        [...examMap.values()].map((exam) => exam.id)
+      )
+    : new Set<number>();
 
   const orderedModules = [...modules].sort((a, b) => a.order_index - b.order_index);
 
   const moduleStateMap = new Map<number, "locked" | "available" | "completed">();
-  if (student) {
-    await Promise.all(
-      orderedModules.map(async (mod) => {
-        const canAccess = moduleAccessMap.get(mod.id) === true;
-        if (!canAccess) {
-          moduleStateMap.set(mod.id, "locked");
-          return;
-        }
+  for (const mod of orderedModules) {
+    const canAccess = moduleAccessMap.get(mod.id) === true;
+    if (!canAccess) {
+      moduleStateMap.set(mod.id, "locked");
+      continue;
+    }
 
-        const exam = await getExamByModuleId(mod.id);
-        if (!exam) {
-          moduleStateMap.set(mod.id, "available");
-          return;
-        }
-
-        const passed = await hasPassedExam(student.id, exam.id);
-        moduleStateMap.set(mod.id, passed ? "completed" : "available");
-      })
+    const exam = examMap.get(mod.id);
+    moduleStateMap.set(
+      mod.id,
+      exam && passedExamIds.has(exam.id) ? "completed" : "available"
     );
   }
 

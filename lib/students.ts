@@ -1,7 +1,8 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Student } from "@/lib/types";
 
-export async function getCurrentAuthUser() {
+export const getCurrentAuthUser = cache(async function getCurrentAuthUser() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -9,9 +10,9 @@ export async function getCurrentAuthUser() {
   } = await supabase.auth.getUser();
   if (error) return { user: null, error };
   return { user, error: null };
-}
+});
 
-export async function getCurrentStudent(): Promise<{
+export const getCurrentStudent = cache(async function getCurrentStudent(): Promise<{
   student: Student | null;
   error: Error | null;
 }> {
@@ -29,13 +30,13 @@ export async function getCurrentStudent(): Promise<{
 
   if (error) return { student: null, error };
   return { student: data as Student | null, error: null };
-}
+});
 
 /**
  * Returns the current student, creating one if missing (bootstrap).
  * Uses auth user id, email, and name. Database default is used for access_level.
  */
-export async function ensureCurrentStudent(): Promise<{
+export const ensureCurrentStudent = cache(async function ensureCurrentStudent(): Promise<{
   student: Student | null;
   error: Error | null;
 }> {
@@ -64,4 +65,4 @@ export async function ensureCurrentStudent(): Promise<{
 
   if (insertError) return { student: null, error: insertError };
   return { student: inserted as Student, error: null };
-}
+});
