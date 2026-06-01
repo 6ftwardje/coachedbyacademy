@@ -17,16 +17,16 @@ export default async function AccountPage() {
 
   const rail = (
     <>
-      <RightRailCard title="Membership">
+      <RightRailCard title="Lidmaatschap">
         <p className="cb-caption leading-relaxed">
-          Access is tied to your coaching program. Questions? Use Support in
-          the sidebar.
+          Je toegang is gekoppeld aan je coachingprogramma. Heb je een vraag?
+          Gebruik de hulplink in de zijbalk.
         </p>
       </RightRailCard>
       <RightRailCard title="Status">
-        <div className="text-sm font-semibold text-[var(--foreground)]">Active</div>
+        <div className="text-sm font-semibold text-[var(--foreground)]">Actief</div>
         <p className="mt-2 cb-caption">
-          You currently have access to your training path.
+          Je hebt momenteel toegang tot je opleidingstraject.
         </p>
       </RightRailCard>
     </>
@@ -40,9 +40,9 @@ export default async function AccountPage() {
             {initials || "CB"}
           </div>
           <div className="min-w-0">
-            <div className="cb-eyebrow">Member</div>
+            <div className="cb-eyebrow">Lid</div>
             <div className="mt-2 text-xl font-semibold text-[var(--foreground)]">
-              {student?.name ?? "Not set"}
+              {student?.name ?? "Niet ingesteld"}
             </div>
             <div className="cb-caption mt-1">{student?.email ?? "—"}</div>
           </div>
@@ -50,27 +50,27 @@ export default async function AccountPage() {
 
         <form action="/auth/signout" method="post" className="shrink-0">
           <button type="submit" className="cb-btn cb-btn-secondary">
-            Sign out
+            Afmelden
           </button>
         </form>
       </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,var(--muted)_8%)] p-5">
-          <div className="cb-eyebrow">Access level</div>
+          <div className="cb-eyebrow">Toegangsniveau</div>
           <div className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
             {student?.access_level ?? 1}
           </div>
           <p className="mt-1 cb-caption">
-            Your membership tier for academy access.
+            Je toegangsniveau binnen de Academy.
           </p>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,var(--muted)_8%)] p-5">
-          <div className="cb-eyebrow">Program state</div>
+          <div className="cb-eyebrow">Programmastatus</div>
           <div className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
-            Active
+            Actief
           </div>
-          <p className="mt-1 cb-caption">Training access is enabled.</p>
+          <p className="mt-1 cb-caption">Je toegang tot de opleiding is actief.</p>
         </div>
       </div>
     </section>
@@ -79,10 +79,10 @@ export default async function AccountPage() {
   return (
     <div>
       <PageHeader
-        breadcrumbs={[{ label: "Academy", href: "/modules" }, { label: "Account" }]}
-        eyebrow="Profile"
-        title="Account"
-        description="Identity and access. Minimal, so you can stay focused on the work."
+        breadcrumbs={[{ label: "Academy", href: "/modules" }, { label: "Profiel" }]}
+        eyebrow="Profiel"
+        title="Jouw profiel"
+        description="Je persoonlijke gegevens en toegang tot de Academy."
       />
       <AppPageLayout main={main} rail={rail} />
     </div>

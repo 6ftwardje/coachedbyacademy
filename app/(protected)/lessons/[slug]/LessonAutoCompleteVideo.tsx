@@ -39,7 +39,7 @@ export function LessonAutoCompleteVideo({
       router.refresh();
     } else {
       // Intentionally silent: the page will still reflect latest progress on refresh.
-      console.error(res.error ?? "Failed to mark lesson complete");
+      console.error(res.error ?? "De les kon niet als afgerond worden gemarkeerd.");
     }
   }
 
@@ -56,7 +56,7 @@ export function LessonAutoCompleteVideo({
       {marking ? (
         <div className="pointer-events-none absolute inset-0 flex items-end justify-start p-4">
           <div className="cb-panel px-4 py-2">
-            <span className="cb-caption">Saving progress…</span>
+            <span className="cb-caption">Voortgang opslaan...</span>
           </div>
         </div>
       ) : null}

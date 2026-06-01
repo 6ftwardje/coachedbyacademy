@@ -55,13 +55,13 @@ export default async function ModuleDetailPage({ params }: Props) {
             { label: "Academy", href: "/modules" },
             { label: "Module" },
           ]}
-          eyebrow="Access"
-          title="This module is locked"
-          description="Pass the previous module’s exam to unlock the next training block."
+          eyebrow="Toegang"
+          title="Deze module is nog vergrendeld"
+          description="Slaag eerst voor de toets van de vorige module om dit blok vrij te spelen."
         />
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
           <Link href="/modules" className="cb-btn cb-btn-primary">
-            Back to modules
+            Terug naar modules
           </Link>
         </div>
       </div>
@@ -73,26 +73,26 @@ export default async function ModuleDetailPage({ params }: Props) {
       <RightRailCard title="Module">
         <dl className="space-y-4">
           <div>
-            <dt className="cb-caption">Position</dt>
+            <dt className="cb-caption">Positie</dt>
             <dd className="mt-1 text-sm font-semibold text-[var(--foreground)]">
-              Block {moduleData.order_index}
+              Blok {moduleData.order_index}
             </dd>
           </div>
           <div>
-            <dt className="cb-caption">Lessons</dt>
+            <dt className="cb-caption">Lessen</dt>
             <dd className="mt-1 text-sm font-semibold text-[var(--foreground)]">
-              {completedCount} / {lessons.length} complete
+              {completedCount} / {lessons.length} afgerond
             </dd>
           </div>
           {exam && (
             <div>
-              <dt className="cb-caption">Exam</dt>
+              <dt className="cb-caption">Toets</dt>
               <dd className="mt-1 text-sm font-semibold text-[var(--foreground)]">
                 {hasPassedThisExam
-                  ? "Passed"
+                  ? "Geslaagd"
                   : examUnlocked
-                    ? "Ready to take"
-                    : "Unlock after lessons"}
+                    ? "Klaar om te starten"
+                    : "Komt vrij na de lessen"}
               </dd>
             </div>
           )}
@@ -100,20 +100,20 @@ export default async function ModuleDetailPage({ params }: Props) {
       </RightRailCard>
 
       {exam && (
-        <RightRailCard title="Milestone">
+        <RightRailCard title="Volgende mijlpaal">
           <p className="cb-caption leading-relaxed">
             {hasPassedThisExam
-              ? "Exam cleared. You can retake anytime to sharpen your standard."
+              ? "Je bent geslaagd. Je kunt de toets altijd opnieuw maken."
               : examUnlocked
-                ? "All lessons complete. Submit the exam when you’re ready."
-                : "Finish every lesson in this block to unlock the exam."}
+                ? "Alle lessen zijn afgerond. Start de toets wanneer je klaar bent."
+                : "Rond elke les in dit blok af om de toets vrij te spelen."}
           </p>
           {examUnlocked ? (
             <Link
               href={`/modules/${moduleData.slug}/exam`}
               className="mt-5 inline-flex cb-btn cb-btn-primary w-full justify-center"
             >
-              {hasPassedThisExam ? "Retake exam" : "Take exam"}
+              {hasPassedThisExam ? "Toets opnieuw maken" : "Start de toets"}
             </Link>
           ) : (
             <button
@@ -121,7 +121,7 @@ export default async function ModuleDetailPage({ params }: Props) {
               disabled
               className="mt-5 w-full cb-btn cb-btn-secondary cursor-not-allowed opacity-60"
             >
-              Exam locked
+              Toets vergrendeld
             </button>
           )}
         </RightRailCard>
@@ -139,26 +139,26 @@ export default async function ModuleDetailPage({ params }: Props) {
           className="aspect-[16/8] w-full sm:aspect-[21/9]"
         />
         <div className="p-5 sm:p-6 lg:p-8">
-          <div className="cb-eyebrow">Inside this block</div>
+          <div className="cb-eyebrow">Over deze module</div>
           {moduleIntroText ? (
             <p className="mt-4 cb-body max-w-3xl">{moduleIntroText}</p>
           ) : (
             <p className="mt-4 cb-caption">
-              Work through the sessions below in order. Completion unlocks what’s
-              next.
+              Werk de lessen hieronder in volgorde af. Daarna komt de volgende
+              stap vrij.
             </p>
           )}
         </div>
       </section>
 
       <ContentSection
-        eyebrow="Sessions"
-        title="Lesson sequence"
-        description="Work in order. Status updates when each session is complete."
+        eyebrow="Lessen"
+        title="Inhoud van deze module"
+        description="Werk in volgorde. Je voortgang wordt automatisch bijgewerkt."
       >
         {lessons.length === 0 ? (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-            <p className="cb-caption">No lessons in this module yet.</p>
+            <p className="cb-caption">Deze module bevat nog geen lessen.</p>
           </div>
         ) : (
           <ul className="space-y-4">
@@ -228,15 +228,15 @@ export default async function ModuleDetailPage({ params }: Props) {
 
       {exam && (
         <section className="rounded-3xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_90%,var(--muted)_10%)] p-5 sm:p-6 lg:hidden">
-          <div className="cb-eyebrow">Milestone</div>
-          <h2 className="mt-2 cb-section-title">Module exam</h2>
+          <div className="cb-eyebrow">Volgende mijlpaal</div>
+          <h2 className="mt-2 cb-section-title">Moduletoets</h2>
           {hasPassedThisExam ? (
             <p className="mt-2 cb-body max-w-2xl">
-              You passed this exam. Retake when you want to tighten your standard.
+              Je bent geslaagd voor deze toets. Je kunt ze altijd opnieuw maken.
             </p>
           ) : !examUnlocked ? (
             <p className="mt-2 cb-body max-w-2xl">
-              Complete all lessons in this module to unlock the exam.
+              Rond alle lessen in deze module af om de toets vrij te spelen.
             </p>
           ) : null}
           {examUnlocked ? (
@@ -244,7 +244,7 @@ export default async function ModuleDetailPage({ params }: Props) {
               href={`/modules/${moduleData.slug}/exam`}
               className="mt-5 inline-flex cb-btn cb-btn-primary"
             >
-              {hasPassedThisExam ? "Retake exam" : "Take exam"}
+              {hasPassedThisExam ? "Toets opnieuw maken" : "Start de toets"}
             </Link>
           ) : (
             <button
@@ -252,7 +252,7 @@ export default async function ModuleDetailPage({ params }: Props) {
               disabled
               className="mt-5 cb-btn cb-btn-secondary cursor-not-allowed opacity-60"
             >
-              Exam locked
+              Toets vergrendeld
             </button>
           )}
         </section>
@@ -271,7 +271,7 @@ export default async function ModuleDetailPage({ params }: Props) {
         title={moduleData.title}
         meta={
           <span className="cb-caption">
-            {completedCount}/{lessons.length} lessons
+            {completedCount}/{lessons.length} lessen
           </span>
         }
       />

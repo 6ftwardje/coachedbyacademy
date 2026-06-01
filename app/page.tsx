@@ -1,5 +1,5 @@
-import MagicLinkLogin from "@/components/auth/MagicLinkLogin";
+import StudentAuthForm from "@/components/auth/StudentAuthForm";
 
 export default function HomePage() {
-  return <MagicLinkLogin />;
+  return <StudentAuthForm />;
 }

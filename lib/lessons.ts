@@ -14,6 +14,19 @@ export async function getLessonBySlug(slug: string): Promise<Lesson | null> {
   return data as Lesson;
 }
 
+export async function getLessonById(lessonId: number): Promise<Lesson | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lessons")
+    .select("*")
+    .eq("id", lessonId)
+    .eq("is_published", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as Lesson;
+}
+
 export async function getPublishedLessonsByModuleId(
   moduleId: number
 ): Promise<Lesson[]> {
@@ -64,4 +77,22 @@ export async function getLessonCountsByModuleIds(
   }
 
   return counts;
+}
+
+export async function getPublishedLessonsByModuleIds(
+  moduleIds: number[]
+): Promise<Lesson[]> {
+  if (moduleIds.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lessons")
+    .select("*")
+    .in("module_id", moduleIds)
+    .eq("is_published", true)
+    .order("module_id", { ascending: true })
+    .order("order_index", { ascending: true });
+
+  if (error) return [];
+  return (data ?? []) as Lesson[];
 }

@@ -30,6 +30,8 @@ export type Lesson = {
   title: string;
   slug: string;
   description: string | null;
+  takeaway: string | null;
+  action_items: string[];
   video_url: string | null;
   video_provider: string;
   video_duration_seconds: number | null;
@@ -58,6 +60,17 @@ export type Progress = {
   lesson_id: number;
   watched: boolean;
   watched_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LessonActionProgress = {
+  id: string;
+  student_id: string;
+  lesson_id: number;
+  action_index: number;
+  completed: boolean;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
 };

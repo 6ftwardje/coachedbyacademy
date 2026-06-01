@@ -65,6 +65,14 @@ function asNullableString(value: unknown): string | null {
   return text ? text : null;
 }
 
+function asLineList(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function validateThumbnailUpload(input: ThumbnailUploadInput): string | null {
   if (!input.size || input.size <= 0) {
     return "Choose a thumbnail image.";
@@ -135,6 +143,8 @@ function readLessonInput(formData: FormData) {
       title,
       slug,
       description: asNullableString(formData.get("description")),
+      takeaway: asNullableString(formData.get("takeaway")),
+      action_items: asLineList(formData.get("action_items")),
       thumbnail_url: asNullableString(formData.get("thumbnail_url")),
       order_index: orderIndex,
       is_published: asBoolean(formData.get("is_published")),
@@ -149,6 +159,7 @@ function getCorsOrigin(): string {
 function revalidateVideoPaths(lessonSlug?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/videos");
+  revalidatePath("/dashboard");
   revalidatePath("/modules");
   if (lessonSlug) revalidatePath(`/lessons/${lessonSlug}`);
 }

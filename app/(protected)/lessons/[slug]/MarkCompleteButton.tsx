@@ -16,7 +16,7 @@ export function MarkCompleteButton({ lessonId }: { lessonId: number }) {
     if (result.success) {
       router.refresh();
     } else {
-      setError(result.error ?? "Something went wrong");
+      setError(result.error ?? "Er ging iets mis.");
     }
     setLoading(false);
   }
@@ -29,7 +29,7 @@ export function MarkCompleteButton({ lessonId }: { lessonId: number }) {
         disabled={loading}
         className="cb-btn cb-btn-primary inline-flex disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
       >
-        {loading ? "Saving…" : "Mark lesson complete"}
+        {loading ? "Opslaan..." : "Markeer les als afgerond"}
       </button>
       {error && (
         <p className="mt-2 text-sm text-red-600" role="alert">

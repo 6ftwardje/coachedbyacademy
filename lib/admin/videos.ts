@@ -42,6 +42,8 @@ export type LessonContentInput = {
   title: string;
   slug: string;
   description: string | null;
+  takeaway: string | null;
+  action_items: string[];
   thumbnail_url: string | null;
   order_index: number;
   is_published: boolean;

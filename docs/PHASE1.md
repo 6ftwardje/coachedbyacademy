@@ -11,8 +11,9 @@
 ### App router
 - `app/layout.tsx` – root layout (Geist font, metadata)
 - `app/globals.css` – Tailwind + CSS variables (light/dark)
-- `app/page.tsx` – public home (headline, CTA to login)
-- `app/login/page.tsx` – magic link login (client)
+- `app/page.tsx` – public registration and login page
+- `app/login/page.tsx` – redirects old login bookmarks to `/`
+- `app/account/update-password/page.tsx` – protected password recovery form
 - `app/auth/callback/route.ts` – OAuth/code exchange, redirect to `next`
 - `app/auth/signout/route.ts` – POST sign out, redirect to /
 - `app/(protected)/layout.tsx` – ensures student, wraps in AppShell
@@ -48,10 +49,11 @@
 
 | Path | Protection | Purpose |
 |------|------------|--------|
-| `/` | Public | Landing; CTA to login |
-| `/login` | Public | Magic link sign-in; preserves `redirectedFrom` |
+| `/` | Public | Registration, password login and resetmail request |
+| `/login` | Public | Redirect to `/`; preserves `redirectedFrom` |
 | `/auth/callback` | Public | Exchange code for session; redirect to `next` |
 | `/auth/signout` | POST only | Sign out, redirect to `/` |
+| `/account/update-password` | Authenticated session | Choose a new password after resetmail |
 | `/dashboard` | Protected | Welcome, stats, module grid |
 | `/modules` | Protected | All published modules |
 | `/modules/[slug]` | Protected | One module + its lessons |
@@ -66,16 +68,17 @@ Protected routes live under `app/(protected)/`. The group layout runs first; mid
 1. **Middleware** (`middleware.ts` → `lib/supabase/middleware.ts`)
    - Runs on every request (except static assets).
    - Uses `createServerClient` with request/response cookies to refresh the session.
-   - If path is `/dashboard`, `/modules`, `/modules/*`, or `/account` and there is no user, redirects to `/login?redirectedFrom=<path>`.
+   - If path is `/dashboard`, `/modules`, `/modules/*`, or `/account` and there is no user, redirects to `/?redirectedFrom=<path>`.
 
 2. **Protected layout** (`app/(protected)/layout.tsx`)
    - Calls `ensureCurrentStudent()` (server).
    - If no student (and bootstrap fails), redirects to login.
    - Renders `AppShell` with student name; children are dashboard, modules, account.
 
-3. **Login**
-   - Client: `app/login/page.tsx` uses `createClient()` from `lib/supabase/client.ts`, calls `signInWithOtp` with `emailRedirectTo` pointing to `/auth/callback?next=<redirectedFrom>`.
-   - Server: `app/auth/callback/route.ts` uses `createClient()` from `lib/supabase/server.ts`, calls `exchangeCodeForSession`, then redirects to `next`.
+3. **Registration, login and password recovery**
+   - Client: `components/auth/StudentAuthForm.tsx` uses `createClient()` from `lib/supabase/client.ts`.
+   - Registration calls `signUp`; login calls `signInWithPassword`; password recovery calls `resetPasswordForEmail`.
+   - Server: `app/auth/callback/route.ts` exchanges confirmation and recovery codes for a session, then redirects to an internal `next` path.
 
 4. **Sign out**
    - Form POST to `/auth/signout`; route uses server client `signOut()` and redirects to `/`.
@@ -86,7 +89,7 @@ Protected routes live under `app/(protected)/`. The group layout runs first; mid
 
 - **Source of truth:** Supabase Auth session + `students` table. No localStorage.
 - **Flow:**
-  1. User signs in (magic link) → session exists.
+  1. User confirms registration or signs in with a password -> session exists.
   2. Any protected page is wrapped by `(protected)/layout.tsx`, which calls `ensureCurrentStudent()`.
   3. `ensureCurrentStudent()` in `lib/students.ts`:
      - Gets current auth user via `getCurrentAuthUser()` (server `getUser()`).

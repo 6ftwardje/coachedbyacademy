@@ -10,6 +10,7 @@ It includes:
 
 - `pgcrypto` extension
 - Tables: `students`, `modules`, `lessons`, `exams`, `exam_questions`, `exam_results`, `progress`
+- Follow-up migration: `lesson_action_progress`, plus `lessons.takeaway` and `lessons.action_items`
 - `set_updated_at()` trigger and triggers on all tables with `updated_at`
 - Check constraints: `access_level >= 1`, `passing_score` and `score` 0–100, phone length 8–20, `exam_questions.options` as JSON array
 - Indexes for FKs, unique keys, and filtered indexes for `is_published`
@@ -31,8 +32,11 @@ Run it with Supabase CLI (e.g. `supabase db push`) or apply the file in the SQL 
 | **exam_questions** | Questions for an exam. `options` is a JSON array of answer strings; `correct_answer` stores the correct option value for scoring. |
 | **exam_results** | One row per attempt. Stores `score`, `passed`, and `submitted_at`. No unique on `(student_id, exam_id)` so retakes are allowed. |
 | **progress** | One row per student per lesson: `watched` and `watched_at`. Used to enforce “complete all lessons before exam” and to drive lesson locking. |
+| **lesson_action_progress** | One row per student, lesson, and action index. Stores personal checklist progress without affecting lesson or module gating. |
 
 Together: **modules** and **lessons** define the curriculum; **exams** and **exam_questions** define assessments; **progress** and **exam_results** record what each **student** has done, so the app can lock lessons in sequence and unlock the next module only after passing the previous exam.
+
+`lessons.takeaway` and `lessons.action_items` add optional lesson-level context. Actions stay scoped to the relevant lesson and remain separate from the gating rules, so they add value without blocking the training flow.
 
 ---
 

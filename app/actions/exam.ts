@@ -19,12 +19,12 @@ export async function submitExam(
 }> {
   const { student, error: studentError } = await ensureCurrentStudent();
   if (studentError || !student) {
-    return { success: false, error: "Not authenticated" };
+    return { success: false, error: "Je bent niet aangemeld." };
   }
 
   const questions = await getExamQuestions(examId);
   if (questions.length === 0) {
-    return { success: false, error: "No questions" };
+    return { success: false, error: "Deze toets bevat nog geen vragen." };
   }
 
   const answerMap = new Map(answers.map((a) => [a.questionId, a.selectedAnswer]));
@@ -55,7 +55,7 @@ export async function submitExam(
   });
 
   if (insertError) {
-    return { success: false, error: insertError.message };
+    return { success: false, error: "Je resultaat kon niet worden opgeslagen." };
   }
 
   return { success: true, score, passed };

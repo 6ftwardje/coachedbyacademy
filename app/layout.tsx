@@ -9,7 +9,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "CoachedBy Academy",
-  description: "Premium coach education",
+  description: "Opleidingsplatform voor coaches",
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="nl">
       <body className={`${manrope.variable} font-sans antialiased`}>
         {children}
       </body>

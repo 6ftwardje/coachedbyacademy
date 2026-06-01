@@ -50,15 +50,15 @@ export default async function ModulesPage() {
 
   const rail = (
     <>
-      <RightRailCard title="How it works">
+      <RightRailCard title="Zo werkt het">
         <p className="cb-body text-sm leading-relaxed">
-          Each module is a focused training block. Complete lessons in order,
-          then pass the exam to unlock the next sequence.
+          Elke module is een helder trainingsblok. Rond de lessen in volgorde af
+          en slaag voor de toets om het volgende blok vrij te spelen.
         </p>
       </RightRailCard>
-      <RightRailCard title="Discipline">
+      <RightRailCard title="Focus">
         <p className="cb-caption leading-relaxed">
-          One block at a time. Quality reps beat rushing through content.
+          Werk aan één blok tegelijk. Neem de tijd om de inhoud toe te passen.
         </p>
       </RightRailCard>
     </>
@@ -67,7 +67,7 @@ export default async function ModulesPage() {
   const main =
     orderedModules.length === 0 ? (
       <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8 text-center">
-        <p className="cb-caption">No published modules yet.</p>
+        <p className="cb-caption">Er zijn nog geen modules beschikbaar.</p>
       </div>
     ) : (
       <ul className="grid gap-5 md:grid-cols-2">
@@ -95,7 +95,7 @@ export default async function ModulesPage() {
                       <div className="flex flex-wrap items-center gap-3">
                         <ModuleStateBadge state={state} />
                         <span className="cb-caption">
-                          {lessonCount} lesson{lessonCount !== 1 ? "s" : ""}
+                          {lessonCount} {lessonCount === 1 ? "les" : "lessen"}
                         </span>
                       </div>
                       <h2 className="mt-2 text-lg font-semibold leading-snug text-[var(--foreground)]">
@@ -108,7 +108,7 @@ export default async function ModulesPage() {
                         )}
                       </div>
                       <div className="mt-5 text-sm font-semibold text-[var(--foreground)]">
-                        Open
+                        Openen
                       </div>
                   </div>
                 </Link>
@@ -126,7 +126,7 @@ export default async function ModulesPage() {
                       <div className="flex flex-wrap items-center gap-3">
                         <ModuleStateBadge state={state} />
                         <span className="cb-caption">
-                          {lessonCount} lesson{lessonCount !== 1 ? "s" : ""}
+                          {lessonCount} {lessonCount === 1 ? "les" : "lessen"}
                         </span>
                       </div>
                       <h2 className="mt-2 text-lg font-semibold leading-snug text-[var(--foreground)]">
@@ -139,7 +139,7 @@ export default async function ModulesPage() {
                       )}
                     </div>
                     <div className="mt-5 text-sm">
-                      <span className="cb-caption">Unlock after previous exam</span>
+                      <span className="cb-caption">Komt vrij na de vorige toets</span>
                     </div>
                   </div>
                 </div>
@@ -154,9 +154,9 @@ export default async function ModulesPage() {
     <div>
       <PageHeader
         breadcrumbs={[{ label: "Academy" }]}
-        eyebrow="Training library"
+        eyebrow="Jouw opleiding"
         title="Modules"
-        description="Sequential blocks. Complete the work, pass the exam, unlock what’s next."
+        description="Werk in volgorde. Rond de lessen en toets af om het volgende blok vrij te spelen."
       />
       <AppPageLayout main={main} rail={rail} />
     </div>

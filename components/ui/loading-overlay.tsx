@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type React from "react";
 import { useEffect, useState } from "react";
 
@@ -59,12 +60,14 @@ export function LoadingOverlay({ onComplete, children }: LoadingOverlayProps) {
         }}
         aria-hidden={isClipping}
       >
-        <img
+        <Image
           src={ACADEMY_LOGO_SRC}
           alt="CoachedBy Academy"
+          width={220}
+          height={64}
           className="h-8 w-auto max-w-[min(40vw,200px)] select-none sm:h-9"
           style={{ opacity: logoOpacity }}
-          loading="eager"
+          priority
           decoding="async"
         />
       </div>

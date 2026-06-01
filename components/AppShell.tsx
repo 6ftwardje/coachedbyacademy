@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarNavItem } from "@/components/SidebarNavItem";
@@ -53,7 +54,7 @@ const coreNav = [
   },
   {
     href: "/account",
-    label: "Account",
+    label: "Profiel",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
@@ -103,11 +104,13 @@ function SidebarContent({
           onClick={onNavigate}
           className="inline-flex items-center gap-2 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_25%,transparent)]"
         >
-          <img
+          <Image
             src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
             alt="CoachedBy Academy"
+            width={220}
+            height={64}
             className="h-8 w-auto"
-            loading="eager"
+            priority
           />
         </Link>
       </div>
@@ -120,7 +123,7 @@ function SidebarContent({
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
-                Signed in
+                Aangemeld
               </div>
               <div className="mt-0.5 truncate text-sm font-semibold text-[var(--foreground)]">
                 {studentName}
@@ -132,7 +135,7 @@ function SidebarContent({
 
       <nav
         className="mt-8 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain"
-        aria-label="Main"
+        aria-label="Hoofdnavigatie"
       >
         {nav.map((item) => {
           const isActive =
@@ -157,14 +160,14 @@ function SidebarContent({
             href="mailto:support@coachedby.be"
             className="rounded-lg px-3 py-2 text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
           >
-            Support
+            Hulp nodig?
           </a>
           <form action="/auth/signout" method="post">
             <button
               type="submit"
               className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
             >
-              Sign out
+              Afmelden
             </button>
           </form>
         </div>
@@ -223,7 +226,7 @@ export function AppShell({
         <>
           <button
             type="button"
-            aria-label="Close menu"
+            aria-label="Menu sluiten"
             className="fixed inset-0 z-40 bg-stone-900/35 backdrop-blur-[2px] md:hidden"
             onClick={() => setMobileOpen(false)}
           />
@@ -237,7 +240,7 @@ export function AppShell({
                 className="rounded-lg px-2 py-1 text-sm font-semibold text-[var(--muted)] hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
                 onClick={() => setMobileOpen(false)}
               >
-                Close
+                Sluiten
               </button>
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-6">
@@ -271,10 +274,13 @@ export function AppShell({
             Menu
           </button>
           <Link href="/dashboard" className="inline-flex items-center">
-            <img
+            <Image
               src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
               alt="CoachedBy Academy"
+              width={220}
+              height={64}
               className="h-7 w-auto"
+              priority
             />
           </Link>
           <div className="w-[72px]" aria-hidden />

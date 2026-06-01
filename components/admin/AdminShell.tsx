@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarNavItem } from "@/components/SidebarNavItem";
@@ -69,11 +70,13 @@ function SidebarContent({
           onClick={onNavigate}
           className="inline-flex items-center gap-2 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_25%,transparent)]"
         >
-          <img
+          <Image
             src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
             alt="CoachedBy Academy"
+            width={220}
+            height={64}
             className="h-8 w-auto"
-            loading="eager"
+            priority
           />
         </Link>
       </div>

@@ -1,70 +1,114 @@
-# Supabase correct instellen (magic link / auth)
+# Supabase instellen voor registratie en login
 
-De fout **"TypeError: Failed to fetch"** bij magic link komt bijna altijd door verkeerde waarden in `.env`.
+De app gebruikt Supabase Auth met e-mailadres en wachtwoord. Nieuwe studenten
+registreren zichzelf, bevestigen hun e-mailadres en kunnen daarna opnieuw inloggen.
+De app maakt na de eerste geldige sessie automatisch de bijbehorende rij in
+`public.students` aan.
 
-## 1. Juiste waarden in Supabase Dashboard
+## 1. API-gegevens in `.env`
 
-1. Ga naar [Supabase Dashboard](https://supabase.com/dashboard) → jouw project.
-2. Open **Project Settings** (tandwiel linksonder) → **API**.
-3. Gebruik daar:
-
-| .env variabele | Waar te vinden | Voorbeeld / opmerking |
-|----------------|----------------|------------------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | **Project URL** (niet "Database"!) | `https://vldvzhxmyuybfpiezbcd.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Project API keys** → **anon** **public** (niet service_role!) | Lange JWT die begint met `eyJ...` |
-
-## Welke key in .env? (anon vs service_role)
-
-In **Project Settings → API → Project API keys** staan twee keys:
-
-| Key | Gebruik | In .env? |
-|-----|--------|----------|
-| **anon** **public** | Mag in de browser; gebruikt door login, RLS, etc. | ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
-| **service_role** | Geheim; alleen server-side, bypass RLS. Nooit in de browser. | ❌ Niet in een `NEXT_PUBLIC_` variabele |
-
-Als je de **service_role** key in `NEXT_PUBLIC_SUPABASE_ANON_KEY` zet, krijg je: *"Forbidden use of secret API key in browser"*. Vervang die dan door de **anon public** key.
-
-## Veelgemaakte fouten
-
-- **Verkeerde URL**  
-  Je moet de **Project URL** gebruiken (zoals `https://xxxxx.supabase.co`), **niet** de database connection string (`postgresql://postgres:...@db.xxxxx.supabase.co:5432/postgres`). Auth en de REST API werken alleen met de HTTPS URL.
-
-- **Verkeerde key → "Forbidden use of secret API key in browser"**  
-  Je gebruikt dan de **service_role** key (of een andere geheime key). Die mag nooit in de browser.  
-  Gebruik uitsluitend de **anon public** key (mag in de browser), niet:
-  - de **service_role** key (alleen server-side),
-  - een wachtwoord of "sb_secret_..." string.
-
-## 3. Voorbeeld .env
+1. Ga naar [Supabase Dashboard](https://supabase.com/dashboard) en open het project.
+2. Open **Project Settings** -> **API Keys**.
+3. Zet de publieke client-key en de Project URL in `.env`:
 
 ```env
-# API URL uit Dashboard → Project Settings → API → Project URL
-NEXT_PUBLIC_SUPABASE_URL=https://vldvzhxmyuybfpiezbcd.supabase.co
-
-# Anon public key uit Dashboard → Project Settings → API → anon public
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_SUPABASE_URL=https://jouw-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=jouw_publishable_of_legacy_anon_key
 ```
 
-Vervang de tweede regel door jouw echte **anon public** key uit het dashboard.
+Gebruik voor `NEXT_PUBLIC_SUPABASE_ANON_KEY` bij voorkeur de **Publishable key**
+(`sb_publishable_...`). Een bestaande legacy **anon public** JWT blijft ook werken.
+Gebruik nooit een **Secret key**, legacy **service_role** key of databasewachtwoord
+in een `NEXT_PUBLIC_` variabele.
 
-## 4. Redirect URL voor magic link
+Herstart na een wijziging de devserver:
 
-1. In Supabase: **Authentication** → **URL Configuration**.
-2. Vul bij **Redirect URLs** in:
-   - `http://localhost:3000/auth/callback` (lokaal)
-   - Later ook je productie-URL, bv. `https://jouw-site.netlify.app/auth/callback`
+```bash
+npm run dev
+```
 
-Zonder deze redirect kan de magic link na klikken niet terug naar je app.
+## 2. E-mail en wachtwoord activeren
 
-## 5. Na aanpassen van .env
+1. Ga naar **Authentication** -> **Providers** -> **Email**.
+2. Zet **Enable Email provider** aan.
+3. Zet **Allow new users to sign up** aan.
+4. Laat **Confirm email** aanstaan. Dan krijgt een nieuwe student pas toegang na
+   het aanklikken van de bevestigingsmail.
+5. Sla de wijzigingen op.
 
-- Stop de dev server (Ctrl+C) en start opnieuw: `npm run dev`.
-- Next.js leest `.env` alleen bij opstarten.
+De loginpagina gebruikt minimaal 8 tekens voor een wachtwoord. Je kunt in
+**Authentication** -> **Password Security** strengere regels instellen als dat
+past bij je beleid.
+
+## 3. URL Configuration invullen
+
+Ga naar **Authentication** -> **URL Configuration**.
+
+Voor lokaal ontwikkelen:
+
+| Instelling | Waarde |
+| --- | --- |
+| **Site URL** | `http://localhost:3000` |
+| **Redirect URLs** | `http://localhost:3000/auth/callback**` |
+
+Voeg bij een productieomgeving ook toe:
+
+```text
+https://jouw-domein.nl/auth/callback**
+```
+
+Zet de **Site URL** in productie op je echte domein. De callback verwerkt zowel
+de bevestigingsmail na registratie als de link voor wachtwoordherstel.
+
+## 4. Database-migraties toepassen
+
+De app gebruikt RLS. Een ingelogde gebruiker mag uitsluitend zijn eigen
+`students`-profiel aanmaken en bekijken. De benodigde policy staat in:
+
+```text
+supabase/migrations/20260319000000_students_insert_policy.sql
+```
+
+Pas alle lokale migraties toe op het gekoppelde Supabase-project:
+
+```bash
+supabase db push
+```
+
+Gebruik je de CLI niet, voer de nog ontbrekende migraties dan in volgorde uit via
+**SQL Editor** in het Dashboard.
+
+## 5. E-mailbezorging voor productie
+
+Voor een eerste lokale test kun je de ingebouwde Supabase-mailservice gebruiken
+met e-mailadressen van leden van je Supabase-projectteam. Andere adressen worden
+zonder eigen SMTP-provider geweigerd. De ingebouwde service is beperkt en niet
+bedoeld voor productie. Stel voor live gebruik via
+**Project Settings** -> **Authentication** -> **SMTP Settings** een eigen SMTP-provider
+in en controleer de afzendernaam en het afzenderadres.
+
+De ingebouwde service verstuurt maximaal 2 auth-mails per uur, gezamenlijk voor
+registratie en wachtwoordherstel. Daarnaast geldt standaard een wachttijd van
+60 seconden voordat dezelfde gebruiker opnieuw een registratie- of resetmail kan
+aanvragen. Bij overschrijding antwoordt Supabase met `429 Too Many Requests`.
+
+Met een eigen SMTP-provider kun je het projectbrede e-maillimiet daarna aanpassen
+via **Authentication** -> **Rate Limits**. Laat de wachttijd per gebruiker staan
+tenzij er een goede reden is om deze te verlagen.
 
 ## 6. Controleren
 
-- In de browser: op de login-pagina een e-mail invullen en op "Send magic link" klikken.
-- Geen "Failed to fetch" meer → de URL en anon key kloppen.
-- Check je e-mail (en spam) voor de link; die moet naar `jouw-origin/auth/callback?code=...` gaan.
+1. Open `http://localhost:3000`.
+2. Kies **Registreren**, vul naam, e-mailadres en wachtwoord in.
+3. Klik op de link in de bevestigingsmail.
+4. Controleer dat je op `/dashboard` belandt.
+5. Log uit en log opnieuw in met hetzelfde e-mailadres en wachtwoord.
+6. Test **Wachtwoord vergeten?** en kies via de resetmail een nieuw wachtwoord.
 
-Als het dan nog faalt, controleer de browser console (F12) en het **Network** tabblad: welk request faalt (URL en status)?
+Als registratie wel lukt maar de callback niet, controleer dan eerst
+**Authentication** -> **URL Configuration**. Als de app geen profiel kan aanmaken,
+controleer dan of de migratie met `students_insert_own` is toegepast.
+
+Krijg je `429 Too Many Requests` bij registratie of wachtwoordherstel, wacht dan
+tot het limiet is hersteld of configureer een eigen SMTP-provider. Dit ontstaat
+voordat de callbackroute van de app wordt aangeroepen.

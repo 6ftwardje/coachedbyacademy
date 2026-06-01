@@ -13,6 +13,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { RightRailCard } from "@/components/layout/RightRailCard";
 import { CourseThumbnail } from "@/components/CourseThumbnail";
+import { LessonActionList } from "@/components/LessonActionList";
+import {
+  getLessonActionProgress,
+  normalizeLessonActions,
+} from "@/lib/lesson-actions";
 import type { LessonStatus } from "@/lib/types";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -36,10 +41,10 @@ function LessonRailRow({
 }) {
   const label =
     status === "completed"
-      ? "Done"
+      ? "Afgerond"
       : status === "available"
         ? "Open"
-        : "Locked";
+        : "Vergrendeld";
 
   if (locked) {
     return (
@@ -142,6 +147,12 @@ export default async function LessonPage({ params }: Props) {
   );
   const examAvailable = !!exam && allLessonsCompleted;
   const lessonNotes = asText(lesson.description);
+  const lessonTakeaway = asText(lesson.takeaway);
+  const lessonActions = normalizeLessonActions(lesson.action_items);
+  const actionProgress =
+    canAccess && lessonActions.length > 0
+      ? await getLessonActionProgress(student.id, lesson.id)
+      : new Map<number, boolean>();
 
   if (!canAccess) {
     return (
@@ -150,18 +161,18 @@ export default async function LessonPage({ params }: Props) {
           breadcrumbs={[
             { label: "Academy", href: "/modules" },
             { label: moduleData.title, href: `/modules/${moduleData.slug}` },
-            { label: "Lesson" },
+            { label: "Les" },
           ]}
-          eyebrow="Access"
-          title="This lesson is locked"
-          description="Complete the previous session in this module to continue."
+          eyebrow="Toegang"
+          title="Deze les is nog vergrendeld"
+          description="Rond eerst de vorige les in deze module af om verder te gaan."
         />
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
           <Link
             href={`/modules/${moduleData.slug}`}
             className="cb-btn cb-btn-primary"
           >
-            Back to module
+            Terug naar module
           </Link>
         </div>
       </div>
@@ -178,12 +189,12 @@ export default async function LessonPage({ params }: Props) {
           {moduleData.title}
         </Link>
         <p className="mt-2 cb-caption">
-          Module {moduleData.order_index} · Lesson {lesson.order_index} of{" "}
+          Module {moduleData.order_index} · Les {lesson.order_index} van{" "}
           {allLessons.length}
         </p>
       </RightRailCard>
 
-      <RightRailCard title="Sessions">
+      <RightRailCard title="Lessen">
         <div className="space-y-2">
           {allLessons.map((l) => {
             const st = statusMap.get(l.id) ?? "locked";
@@ -206,8 +217,8 @@ export default async function LessonPage({ params }: Props) {
 
       <RightRailCard title="Focus">
         <p className="cb-caption leading-relaxed">
-          Single-session focus. Let the video land, then move when you&apos;re
-          ready.
+          Neem één les tegelijk door. Bekijk de video rustig en werk daarna je
+          opdrachten af.
         </p>
       </RightRailCard>
     </>
@@ -239,26 +250,43 @@ export default async function LessonPage({ params }: Props) {
         </div>
       </section>
 
+      {lessonTakeaway && (
+        <section className="rounded-3xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_88%,var(--muted)_12%)] p-5 sm:p-6">
+          <div className="cb-eyebrow">Belangrijkste inzicht</div>
+          <p className="mt-3 cb-body font-medium text-[var(--foreground)]">
+            {lessonTakeaway}
+          </p>
+        </section>
+      )}
+
       {lessonNotes && (
         <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
-          <div className="cb-eyebrow">Session notes</div>
+          <div className="cb-eyebrow">Over deze les</div>
           <p className="mt-3 cb-body">{lessonNotes}</p>
         </section>
+      )}
+
+      {lessonActions.length > 0 && (
+        <LessonActionList
+          lessonId={lesson.id}
+          actions={lessonActions}
+          initialCompleted={Object.fromEntries(actionProgress)}
+        />
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-h-[42px]">
           {isCompleted ? (
-            <span className="cb-badge cb-badge-completed">Completed</span>
+            <span className="cb-badge cb-badge-completed">Afgerond</span>
           ) : (
-            <span className="cb-caption">Progress updates automatically.</span>
+            <span className="cb-caption">Je voortgang wordt automatisch bijgewerkt.</span>
           )}
         </div>
       </div>
 
       <nav
         className="flex flex-col gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between"
-        aria-label="Lesson navigation"
+        aria-label="Navigatie tussen lessen"
       >
         <div>
           {prevLesson ? (
@@ -266,10 +294,10 @@ export default async function LessonPage({ params }: Props) {
               href={`/lessons/${prevLesson.slug}`}
               className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
             >
-              ← Previous: {prevLesson.title}
+              ← Vorige: {prevLesson.title}
             </Link>
           ) : (
-            <span className="text-sm text-[var(--muted)] opacity-80">No previous lesson</span>
+            <span className="text-sm text-[var(--muted)] opacity-80">Geen vorige les</span>
           )}
         </div>
         <div className="text-right">
@@ -278,21 +306,21 @@ export default async function LessonPage({ params }: Props) {
               href={`/lessons/${nextLesson.slug}`}
               className="cb-btn cb-btn-primary inline-flex"
             >
-              Next: {nextLesson.title}
+              Volgende: {nextLesson.title}
             </Link>
           ) : isLastLesson && examAvailable ? (
             <Link
               href={`/modules/${moduleData.slug}/exam`}
               className="cb-btn cb-btn-primary inline-flex"
             >
-              Take module exam
+              Start de moduletoets
             </Link>
           ) : isLastLesson ? (
             <p className="text-sm text-[var(--muted)]">
-              Complete this lesson to unlock the module exam.
+              Rond deze les af om de moduletoets vrij te spelen.
             </p>
           ) : (
-            <span className="text-sm text-[var(--muted)] opacity-80">No next lesson</span>
+            <span className="text-sm text-[var(--muted)] opacity-80">Geen volgende les</span>
           )}
         </div>
       </nav>
@@ -307,11 +335,11 @@ export default async function LessonPage({ params }: Props) {
           { label: moduleData.title, href: `/modules/${moduleData.slug}` },
           { label: lesson.title },
         ]}
-        eyebrow={`Module ${moduleData.order_index} · Lesson ${lesson.order_index}`}
+        eyebrow={`Module ${moduleData.order_index} · Les ${lesson.order_index}`}
         title={lesson.title}
         meta={
           <span className="cb-caption">
-            {lesson.order_index} of {allLessons.length}
+            {lesson.order_index} van {allLessons.length}
           </span>
         }
       />

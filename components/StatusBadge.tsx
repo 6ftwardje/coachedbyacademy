@@ -5,10 +5,10 @@ export type ModuleState = "locked" | "available" | "completed";
 export function ModuleStateBadge({ state }: { state: ModuleState }) {
   const label =
     state === "completed"
-      ? "Completed"
+      ? "Afgerond"
       : state === "available"
-        ? "Available"
-        : "Locked";
+        ? "Beschikbaar"
+        : "Vergrendeld";
   const cls =
     state === "completed"
       ? "cb-badge cb-badge-completed"
@@ -21,12 +21,12 @@ export function ModuleStateBadge({ state }: { state: ModuleState }) {
 export function LessonStatusBadge({ status }: { status: LessonStatus }) {
   switch (status) {
     case "completed":
-      return <span className="cb-badge cb-badge-completed">Completed</span>;
+      return <span className="cb-badge cb-badge-completed">Afgerond</span>;
     case "available":
-      return <span className="cb-badge cb-badge-available">Available</span>;
+      return <span className="cb-badge cb-badge-available">Beschikbaar</span>;
     case "locked":
-      return <span className="cb-badge cb-badge-locked">Locked</span>;
+      return <span className="cb-badge cb-badge-locked">Vergrendeld</span>;
     default:
-      return <span className="cb-badge cb-badge-locked">Locked</span>;
+      return <span className="cb-badge cb-badge-locked">Vergrendeld</span>;
   }
 }

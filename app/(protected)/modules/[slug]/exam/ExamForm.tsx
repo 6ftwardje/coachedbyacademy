@@ -51,7 +51,7 @@ export function ExamForm({
         setResult({ score: res.score, passed: res.passed });
         router.refresh();
       } else {
-        setError(res.error ?? "Submission failed");
+        setError(res.error ?? "Indienen mislukt.");
       }
     });
   }
@@ -59,17 +59,17 @@ export function ExamForm({
   if (result) {
     return (
       <div className="cb-panel p-8">
-        <div className="cb-eyebrow">Result</div>
+        <div className="cb-eyebrow">Resultaat</div>
         <h2 className="mt-3 text-3xl font-semibold text-[var(--foreground)] tracking-tight">
           Score: {result.score}%
         </h2>
 
         <div className="mt-3">
           {result.passed ? (
-            <span className="cb-badge cb-badge-completed">Passed</span>
+            <span className="cb-badge cb-badge-completed">Geslaagd</span>
           ) : (
             <span className="cb-badge cb-badge-locked">
-              Not passed (need {passingScore}%)
+              Niet geslaagd (je hebt {passingScore}% nodig)
             </span>
           )}
         </div>
@@ -79,12 +79,12 @@ export function ExamForm({
             href={`/modules/${moduleSlug}`}
             className="cb-btn cb-btn-secondary"
           >
-            Back to module
+            Terug naar module
           </Link>
 
           {result.passed && (
             <Link href="/modules" className="cb-btn cb-btn-primary">
-              Continue to next module
+              Ga naar de volgende module
             </Link>
           )}
 
@@ -97,7 +97,7 @@ export function ExamForm({
               }}
               className="cb-btn cb-btn-primary"
             >
-              Retake exam
+              Toets opnieuw maken
             </button>
           )}
         </div>
@@ -114,7 +114,7 @@ export function ExamForm({
             className="cb-panel p-5"
           >
             <legend className="cb-eyebrow">
-              Question {index + 1} of {questions.length}
+              Vraag {index + 1} van {questions.length}
             </legend>
             <p className="mt-2 text-lg font-semibold text-[var(--foreground)] leading-snug">
               {q.question}
@@ -157,11 +157,11 @@ export function ExamForm({
           disabled={!canSubmit}
           className="cb-btn cb-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? "Submitting…" : "Submit exam"}
+          {submitting ? "Indienen..." : "Toets indienen"}
         </button>
         {!allAnswered && (
           <p className="self-center cb-caption">
-            Answer all questions to submit.
+            Beantwoord alle vragen om in te dienen.
           </p>
         )}
       </div>

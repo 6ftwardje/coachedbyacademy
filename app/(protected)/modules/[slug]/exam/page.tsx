@@ -41,15 +41,15 @@ export default async function ModuleExamPage({ params }: Props) {
         <PageHeader
           breadcrumbs={[
             { label: "Academy", href: "/modules" },
-            { label: "Exam" },
+            { label: "Toets" },
           ]}
-          eyebrow="Access"
-          title="Module locked"
-          description="Pass the previous module’s exam to access this assessment."
+          eyebrow="Toegang"
+          title="Module vergrendeld"
+          description="Slaag eerst voor de toets van de vorige module."
         />
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
           <Link href="/modules" className="cb-btn cb-btn-primary">
-            Back to modules
+            Terug naar modules
           </Link>
         </div>
       </div>
@@ -63,18 +63,18 @@ export default async function ModuleExamPage({ params }: Props) {
           breadcrumbs={[
             { label: "Academy", href: "/modules" },
             { label: moduleData.title, href: `/modules/${moduleData.slug}` },
-            { label: "Exam" },
+            { label: "Toets" },
           ]}
-          eyebrow="Assessment"
-          title="No exam configured"
-          description="This module does not have an exam yet."
+          eyebrow="Toets"
+          title="Nog geen toets ingesteld"
+          description="Voor deze module is nog geen toets beschikbaar."
         />
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
           <Link
             href={`/modules/${moduleData.slug}`}
             className="cb-btn cb-btn-primary"
           >
-            Back to module
+            Terug naar module
           </Link>
         </div>
       </div>
@@ -88,18 +88,18 @@ export default async function ModuleExamPage({ params }: Props) {
           breadcrumbs={[
             { label: "Academy", href: "/modules" },
             { label: moduleData.title, href: `/modules/${moduleData.slug}` },
-            { label: "Exam" },
+            { label: "Toets" },
           ]}
-          eyebrow="Assessment"
-          title="Exam locked"
-          description="Complete every lesson in this module before you submit the exam."
+          eyebrow="Toets"
+          title="Toets vergrendeld"
+          description="Rond eerst alle lessen in deze module af."
         />
         <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center sm:p-10">
           <Link
             href={`/modules/${moduleData.slug}`}
             className="cb-btn cb-btn-primary"
           >
-            Back to module
+            Terug naar module
           </Link>
         </div>
       </div>
@@ -110,20 +110,20 @@ export default async function ModuleExamPage({ params }: Props) {
 
   const rail = (
     <>
-      <RightRailCard title="Assessment rules">
+      <RightRailCard title="Afspraken">
         <ul className="space-y-3 cb-caption">
-          <li>Answer every question before you submit.</li>
+          <li>Beantwoord elke vraag voordat je indient.</li>
           <li>
-            Passing score:{" "}
+            Vereiste score:{" "}
             <span className="font-semibold text-[var(--foreground)]">
               {exam.passing_score}%
             </span>
             .
           </li>
-          <li>Take your time. This is certification-level focus.</li>
+          <li>Neem rustig de tijd om elke vraag te lezen.</li>
         </ul>
       </RightRailCard>
-      <RightRailCard title="Context">
+      <RightRailCard title="Module">
         <p className="cb-caption leading-relaxed">
           Module:{" "}
           <span className="font-semibold text-[var(--foreground)]">{moduleData.title}</span>
@@ -132,7 +132,7 @@ export default async function ModuleExamPage({ params }: Props) {
           href={`/modules/${moduleData.slug}`}
           className="mt-3 inline-flex text-sm font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
         >
-          ← Back to module
+          ← Terug naar module
         </Link>
       </RightRailCard>
     </>
@@ -141,12 +141,12 @@ export default async function ModuleExamPage({ params }: Props) {
   const main =
     questions.length === 0 ? (
       <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
-        <p className="cb-caption">No questions in this exam yet.</p>
+        <p className="cb-caption">Deze toets bevat nog geen vragen.</p>
         <Link
           href={`/modules/${moduleData.slug}`}
           className="mt-6 inline-flex text-sm font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
         >
-          Back to module
+          Terug naar module
         </Link>
       </div>
     ) : (
@@ -165,13 +165,13 @@ export default async function ModuleExamPage({ params }: Props) {
         breadcrumbs={[
           { label: "Academy", href: "/modules" },
           { label: moduleData.title, href: `/modules/${moduleData.slug}` },
-          { label: "Exam" },
+          { label: "Toets" },
         ]}
-        eyebrow="Module exam"
+        eyebrow="Moduletoets"
         title={exam.title}
         description={asText(exam.description) ?? undefined}
         meta={
-          <span className="cb-caption">Passing: {exam.passing_score}%</span>
+          <span className="cb-caption">Slagen vanaf {exam.passing_score}%</span>
         }
       />
       <AppPageLayout main={main} rail={rail} />

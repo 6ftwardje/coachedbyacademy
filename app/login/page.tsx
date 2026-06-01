@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 /**
- * Magic link sign-in lives at `/`. Keep `/login` for bookmarks and old links.
+ * Authentication lives at `/`. Keep `/login` for bookmarks and old links.
  */
 export default async function LoginPage({
   searchParams,

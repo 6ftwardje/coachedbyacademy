@@ -111,7 +111,7 @@ export function VimeoPlayer({
       <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[color-mix(in_oklab,#f50101_34%,var(--border)_66%)] bg-stone-950 shadow-[0_0_0_1px_rgba(245,1,1,0.06),0_16px_42px_rgba(28,25,23,0.14)]">
         <MuxPlayer
           playbackId={muxId}
-          videoTitle={title ?? "Lesson video"}
+          videoTitle={title ?? "Lesvideo"}
           className="h-full w-full"
           primaryColor="#ffffff"
           secondaryColor="#0c0a09"
@@ -127,7 +127,7 @@ export function VimeoPlayer({
     return (
       <div className="aspect-video w-full rounded-2xl border border-stone-200 bg-stone-100 flex items-center justify-center">
         <p className="text-stone-500 text-sm px-4 text-center">
-          No video available for this lesson.
+          Er is nog geen video beschikbaar voor deze les.
         </p>
       </div>
     );
@@ -138,7 +138,7 @@ export function VimeoPlayer({
       <iframe
         ref={iframeRef}
         src={embedUrl ?? undefined}
-        title={title ?? "Lesson video"}
+        title={title ?? "Lesvideo"}
         className="w-full h-full"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen

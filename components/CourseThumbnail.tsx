@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type CourseThumbnailProps = {
   src?: string | null;
   title: string;
@@ -22,11 +24,12 @@ export function CourseThumbnail({
       className={`relative isolate min-w-0 max-w-full overflow-hidden bg-[color-mix(in_oklab,var(--card)_82%,var(--border)_18%)] ${className}`}
     >
       {src ? (
-        <img
+        <Image
           src={src}
           alt=""
-          className={`h-full w-full object-cover transition duration-500 ${muted ? "grayscale" : ""} ${imageClassName}`}
-          loading="lazy"
+          fill
+          className={`object-cover transition duration-500 ${muted ? "grayscale" : ""} ${imageClassName}`}
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
         />
       ) : (
         <div className="absolute inset-0">
