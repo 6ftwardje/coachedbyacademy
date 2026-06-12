@@ -2,6 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import UpdatePasswordForm from "@/components/auth/UpdatePasswordForm";
 import { createClient } from "@/lib/supabase/server";
+import { ACADEMY_LOGO_SRC } from "@/lib/brand";
 
 export default async function UpdatePasswordPage() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function UpdatePasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-stone-950 px-5 py-10 text-stone-50">
       <section className="w-full max-w-md">
         <Image
-          src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+          src={ACADEMY_LOGO_SRC}
           alt="CoachedBy Academy"
           width={220}
           height={64}

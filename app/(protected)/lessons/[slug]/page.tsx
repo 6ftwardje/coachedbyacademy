@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ensureCurrentStudent } from "@/lib/students";
 import { getLessonBySlug, getPublishedLessonsByModuleId } from "@/lib/lessons";
 import { getModuleById } from "@/lib/modules";
-import { getLessonStatuses } from "@/lib/lesson-gate";
+import { canStudentAccessModule } from "@/lib/module-gate";
+import { getLessonStatusesFromProgress } from "@/lib/lesson-gate";
 import { getProgressByLessonIds } from "@/lib/progress";
 import { getExamByModuleId } from "@/lib/exams";
 import { VimeoPlayer } from "@/components/VimeoPlayer";
@@ -120,13 +121,19 @@ export default async function LessonPage({ params }: Props) {
   const { student } = await ensureCurrentStudent();
   if (!student) notFound();
 
+  const canAccessLessonModule = await canStudentAccessModule(
+    student.id,
+    lesson.module_id
+  );
+  if (!canAccessLessonModule) notFound();
+
   const allLessons = await getPublishedLessonsByModuleId(lesson.module_id);
-  const [moduleData, statusMap, progressMap, exam] = await Promise.all([
+  const [moduleData, progressMap, exam] = await Promise.all([
     getModuleById(lesson.module_id),
-    getLessonStatuses(student.id, allLessons),
     getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
     getExamByModuleId(lesson.module_id),
   ]);
+  const statusMap = getLessonStatusesFromProgress(allLessons, progressMap);
 
   if (!moduleData) notFound();
 

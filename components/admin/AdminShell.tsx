@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarNavItem } from "@/components/SidebarNavItem";
 import { PageLoadOverlay } from "@/components/PageLoadOverlay";
+import { ACADEMY_LOGO_SRC } from "@/lib/brand";
 
 const adminNav = [
   {
@@ -71,7 +72,7 @@ function SidebarContent({
           className="inline-flex items-center gap-2 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_25%,transparent)]"
         >
           <Image
-            src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+            src={ACADEMY_LOGO_SRC}
             alt="CoachedBy Academy"
             width={220}
             height={64}

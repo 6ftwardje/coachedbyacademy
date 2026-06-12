@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { adminUpdateStudentAccessLevel } from "@/app/actions/admin/students";
 import {
@@ -18,7 +17,6 @@ export function AccessLevelSelect({
   actorStudentId: string;
   variant?: "default" | "inline";
 }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [local, setLocal] = useState(value);
@@ -27,6 +25,7 @@ export function AccessLevelSelect({
 
   const onChange = (next: string) => {
     const n = Number(next);
+    const previous = local;
     setLocal(n);
     setError(null);
 
@@ -35,7 +34,7 @@ export function AccessLevelSelect({
         "Lower this access level? The student will lose permissions tied to higher levels."
       );
       if (!ok) {
-        setLocal(value);
+        setLocal(previous);
         return;
       }
     }
@@ -44,10 +43,9 @@ export function AccessLevelSelect({
       const res = await adminUpdateStudentAccessLevel(studentId, n);
       if (!res.success) {
         setError(res.error ?? "Update failed");
-        setLocal(value);
+        setLocal(previous);
         return;
       }
-      router.refresh();
     });
   };
 

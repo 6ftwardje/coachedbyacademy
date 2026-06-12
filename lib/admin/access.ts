@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentStudent } from "@/lib/students";
+import { timeAsync } from "@/lib/perf";
 import type { Student } from "@/lib/types";
 import {
   ADMIN_ACCESS_LEVEL,
@@ -31,7 +32,9 @@ export async function requireAdmin(): Promise<{ actorStudent: Student }> {
     return { actorStudent: MOCK_ADMIN };
   }
 
-  const { student, error } = await getCurrentStudent();
+  const { student, error } = await timeAsync("[perf] admin.requireAdmin", () =>
+    getCurrentStudent()
+  );
   if (error || !student) {
     redirect("/?redirectedFrom=" + encodeURIComponent("/admin"));
   }

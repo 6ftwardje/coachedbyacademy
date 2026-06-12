@@ -13,7 +13,7 @@ export function AppPageLayout({
   railClassName?: string;
 }) {
   if (!rail) {
-    return <div className="min-w-0">{main}</div>;
+    return <div className="min-w-0 space-y-8 lg:space-y-10">{main}</div>;
   }
 
   return (

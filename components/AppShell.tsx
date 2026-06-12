@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarNavItem } from "@/components/SidebarNavItem";
 import { PageLoadOverlay } from "@/components/PageLoadOverlay";
+import { ACADEMY_LOGO_SRC } from "@/lib/brand";
 
 const adminNavItem = {
   href: "/admin",
@@ -76,25 +77,14 @@ function getNavItems(showAdminNav: boolean) {
 }
 
 function SidebarContent({
-  studentName,
   showAdminNav,
   onNavigate,
 }: {
-  studentName: string | null;
   showAdminNav: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const nav = getNavItems(showAdminNav);
-
-  const initials = studentName
-    ? studentName
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((p) => p[0]?.toUpperCase())
-        .join("")
-    : "";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -105,7 +95,7 @@ function SidebarContent({
           className="inline-flex items-center gap-2 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_25%,transparent)]"
         >
           <Image
-            src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+            src={ACADEMY_LOGO_SRC}
             alt="CoachedBy Academy"
             width={220}
             height={64}
@@ -114,24 +104,6 @@ function SidebarContent({
           />
         </Link>
       </div>
-
-      {studentName && (
-        <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[0_1px_0_rgba(28,25,23,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[color-mix(in_oklab,var(--card)_85%,var(--border)_15%)] text-sm font-bold text-[var(--foreground)]">
-              {initials || studentName[0]?.toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
-                Aangemeld
-              </div>
-              <div className="mt-0.5 truncate text-sm font-semibold text-[var(--foreground)]">
-                {studentName}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <nav
         className="mt-8 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain"
@@ -214,7 +186,6 @@ export function AppShell({
       <aside className="relative hidden h-full min-h-0 w-[272px] shrink-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--background)] md:flex">
         <div className="flex h-full min-h-0 flex-col px-5 py-7">
           <SidebarContent
-            studentName={studentName}
             showAdminNav={showAdminNav}
             onNavigate={() => setMobileOpen(false)}
           />
@@ -245,7 +216,6 @@ export function AppShell({
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-6">
               <SidebarContent
-                studentName={studentName}
                 showAdminNav={showAdminNav}
                 onNavigate={() => setMobileOpen(false)}
               />
@@ -275,7 +245,7 @@ export function AppShell({
           </button>
           <Link href="/dashboard" className="inline-flex items-center">
             <Image
-              src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+              src={ACADEMY_LOGO_SRC}
               alt="CoachedBy Academy"
               width={220}
               height={64}

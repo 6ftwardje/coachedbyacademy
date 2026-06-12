@@ -4,6 +4,8 @@ import type { AdminSortField, AdminStudentListRow } from "@/lib/admin/types";
 import { buildAdminStudentProgressDetail } from "@/lib/admin/progress";
 import type { AdminStudentDetail } from "@/lib/admin/types";
 import { requireAdmin } from "@/lib/admin/access";
+import { getStudentModuleAccessIdsAdmin } from "@/lib/admin/module-access";
+import { timeAsync } from "@/lib/perf";
 
 type ListParams = {
   q?: string;
@@ -15,23 +17,21 @@ type ListParams = {
 
 export async function listStudentsAdmin(
   params: ListParams
-): Promise<{ rows: AdminStudentListRow[]; total: number }> {
+): Promise<{ rows: AdminStudentListRow[]; hasNextPage: boolean }> {
   await requireAdmin();
 
   if (process.env.NODE_ENV === "test") {
-    return { rows: [], total: 0 };
+    return { rows: [], hasNextPage: false };
   }
 
   const db = await createClient();
   const { q, sortBy, order, page, pageSize } = params;
   const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  const to = from + pageSize;
 
   let qBuilder = db
     .from("students")
-    .select("id, email, name, phone, access_level, created_at, last_seen", {
-      count: "exact",
-    });
+    .select("id, email, name, phone, access_level, created_at, last_seen");
 
   const trimmed = q?.trim();
   if (trimmed) {
@@ -46,7 +46,9 @@ export async function listStudentsAdmin(
     nullsFirst: false,
   });
 
-  const { data, error, count } = await qBuilder.range(from, to);
+  const { data, error } = await timeAsync("[perf] admin.list.query", () =>
+    qBuilder.range(from, to)
+  );
 
   if (error) {
     console.error(
@@ -56,12 +58,14 @@ export async function listStudentsAdmin(
       error.details,
       error.hint
     );
-    return { rows: [], total: 0 };
+    return { rows: [], hasNextPage: false };
   }
 
+  const rows = ((data ?? []) as AdminStudentListRow[]).slice(0, pageSize);
+
   return {
-    rows: (data ?? []) as AdminStudentListRow[],
-    total: count ?? 0,
+    rows,
+    hasNextPage: (data?.length ?? 0) > pageSize,
   };
 }
 
@@ -77,7 +81,7 @@ export async function getStudentByIdAdmin(
   const db = await createClient();
   const { data, error } = await db
     .from("students")
-    .select("*")
+    .select("id, email, name, auth_user_id, access_level, created_at, updated_at, last_seen, phone")
     .eq("id", studentId)
     .maybeSingle();
 
@@ -86,15 +90,25 @@ export async function getStudentByIdAdmin(
 }
 
 export async function getAdminStudentDetail(studentId: string): Promise<AdminStudentDetail | null> {
-  const student = await getStudentByIdAdmin(studentId);
+  const student = await timeAsync("[perf] detail.query", () =>
+    getStudentByIdAdmin(studentId)
+  );
   if (!student) return null;
 
-  const { overview, modules } = await buildAdminStudentProgressDetail(studentId);
+  const [{ overview, modules }, explicitModuleAccessIds] = await timeAsync(
+    "[perf] detail.query",
+    () =>
+      Promise.all([
+        buildAdminStudentProgressDetail(studentId),
+        getStudentModuleAccessIdsAdmin(studentId),
+      ])
+  );
 
   return {
     student,
     progressOverview: overview,
     modules,
+    explicitModuleAccessIds: [...explicitModuleAccessIds],
   };
 }
 

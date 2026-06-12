@@ -2,18 +2,20 @@ import Link from "next/link";
 import { ensureCurrentStudent } from "@/lib/students";
 import { getPublishedModules } from "@/lib/modules";
 import { getLessonCountsByModuleIds } from "@/lib/lessons";
-import { getModuleAccessMap } from "@/lib/module-gate";
+import { getModuleAccessMap, getVisibleModulesForStudent } from "@/lib/module-gate";
 import { getExamsByModuleIds, getPassedExamIdsForStudent } from "@/lib/exams";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
-import { RightRailCard } from "@/components/layout/RightRailCard";
 import { ModuleStateBadge } from "@/components/StatusBadge";
 import { CourseThumbnail } from "@/components/CourseThumbnail";
 import { asText } from "@/lib/as-text";
 
 export default async function ModulesPage() {
   const { student } = await ensureCurrentStudent();
-  const modules = await getPublishedModules();
+  const allModules = await getPublishedModules();
+  const modules = student
+    ? await getVisibleModulesForStudent(student.id, allModules)
+    : allModules;
   const moduleIds = modules.map((module) => module.id);
 
   const [lessonCountMap, moduleAccessMap, examMap] = await Promise.all([
@@ -47,22 +49,6 @@ export default async function ModulesPage() {
       exam && passedExamIds.has(exam.id) ? "completed" : "available"
     );
   }
-
-  const rail = (
-    <>
-      <RightRailCard title="Zo werkt het">
-        <p className="cb-body text-sm leading-relaxed">
-          Elke module is een helder trainingsblok. Rond de lessen in volgorde af
-          en slaag voor de toets om het volgende blok vrij te spelen.
-        </p>
-      </RightRailCard>
-      <RightRailCard title="Focus">
-        <p className="cb-caption leading-relaxed">
-          Werk aan één blok tegelijk. Neem de tijd om de inhoud toe te passen.
-        </p>
-      </RightRailCard>
-    </>
-  );
 
   const main =
     orderedModules.length === 0 ? (
@@ -158,7 +144,7 @@ export default async function ModulesPage() {
         title="Modules"
         description="Werk in volgorde. Rond de lessen en toets af om het volgende blok vrij te spelen."
       />
-      <AppPageLayout main={main} rail={rail} />
+      <AppPageLayout main={main} />
     </div>
   );
 }

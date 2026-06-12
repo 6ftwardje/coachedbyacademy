@@ -1,5 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { timeAsync } from "@/lib/perf";
+
+function hasSupabaseAuthCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some((cookie) => /^sb-.*auth-token/.test(cookie.name));
+}
+
+function isProtectedPath(pathname: string) {
+  return (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/modules") ||
+    pathname.startsWith("/lessons") ||
+    pathname.startsWith("/admin") ||
+    pathname === "/account"
+  );
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -19,6 +36,30 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  const pathname = request.nextUrl.pathname;
+  const protectedPath = isProtectedPath(pathname);
+  const authRoute = pathname.startsWith("/auth/");
+  const hasAuthCookie = hasSupabaseAuthCookie(request);
+
+  if (authRoute) {
+    return supabaseResponse;
+  }
+
+  if (protectedPath && !hasAuthCookie) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.searchParams.set("redirectedFrom", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/" && !hasAuthCookie) {
+    return supabaseResponse;
+  }
+
+  if (!protectedPath && pathname !== "/") {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -34,9 +75,9 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
+  } = await timeAsync("[perf] middleware.auth.getUser", () =>
+    supabase.auth.getUser()
+  );
 
   if (pathname === "/" && user) {
     const url = request.nextUrl.clone();
@@ -45,14 +86,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const isProtected =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/modules") ||
-    pathname.startsWith("/lessons") ||
-    pathname.startsWith("/admin") ||
-    pathname === "/account";
-
-  if (isProtected && !user) {
+  if (protectedPath && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.searchParams.set("redirectedFrom", pathname);

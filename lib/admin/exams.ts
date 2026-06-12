@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { AdminExamAttemptSummary } from "@/lib/admin/types";
 import type { Exam } from "@/lib/types";
 
+const ADMIN_EXAM_SELECT =
+  "id, module_id, title, description, passing_score, is_published, created_at, updated_at";
+
 /**
  * Per-module exam summary: latest score, pass flag, attempts, and whether any attempt passed.
  * Call only after `requireAdmin()` (e.g. from `buildAdminStudentProgressDetail`).
@@ -20,7 +23,7 @@ export async function getExamSummariesByModuleForStudent(
 
   const { data: exams, error: examsError } = await db
     .from("exams")
-    .select("*")
+    .select(ADMIN_EXAM_SELECT)
     .in("module_id", moduleIds);
 
   if (examsError || !exams?.length) {

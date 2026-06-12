@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ACADEMY_LOGO_SRC } from "@/lib/brand";
 
 type AuthMode = "login" | "register" | "reset";
 type FormStatus = "idle" | "loading" | "success" | "error";
@@ -167,7 +168,7 @@ function AuthForm() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,color-mix(in_oklab,var(--muted)_28%,transparent),transparent_38%),radial-gradient(circle_at_90%_85%,color-mix(in_oklab,var(--foreground)_12%,transparent),transparent_42%)]" />
           <div className="relative">
             <Image
-              src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+              src={ACADEMY_LOGO_SRC}
               alt="CoachedBy Academy"
               width={250}
               height={72}
@@ -191,7 +192,7 @@ function AuthForm() {
         <section className="flex items-center justify-center px-5 py-10 sm:px-10">
           <div className="w-full max-w-md">
             <Image
-              src="https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png"
+              src={ACADEMY_LOGO_SRC}
               alt="CoachedBy Academy"
               width={220}
               height={64}

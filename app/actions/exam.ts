@@ -3,6 +3,7 @@
 import { ensureCurrentStudent } from "@/lib/students";
 import { getExamQuestions, insertExamResult } from "@/lib/exams";
 import { createClient } from "@/lib/supabase/server";
+import { canStudentAccessModule } from "@/lib/module-gate";
 
 /**
  * Submit exam answers, compute score, and insert exam_results.
@@ -41,10 +42,20 @@ export async function submitExam(
   const supabase = await createClient();
   const { data: exam } = await supabase
     .from("exams")
-    .select("passing_score")
+    .select("module_id, passing_score")
     .eq("id", examId)
     .single();
-  const passingScore = (exam as { passing_score: number } | null)?.passing_score ?? 70;
+  const examRow = exam as { module_id: number; passing_score: number } | null;
+  if (!examRow) {
+    return { success: false, error: "Deze toets bestaat niet meer." };
+  }
+
+  const canAccessModule = await canStudentAccessModule(student.id, examRow.module_id);
+  if (!canAccessModule) {
+    return { success: false, error: "Je hebt geen toegang tot deze toets." };
+  }
+
+  const passingScore = examRow.passing_score ?? 70;
   const passed = score >= passingScore;
 
   const { error: insertError } = await insertExamResult({

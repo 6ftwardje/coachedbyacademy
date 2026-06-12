@@ -2,6 +2,11 @@ import type { Lesson } from "@/lib/types";
 import type { LessonStatus } from "@/lib/types";
 import { getProgressByLessonIds } from "@/lib/progress";
 
+type LessonProgressMap = Map<
+  number,
+  { watched: boolean; watched_at: string | null }
+>;
+
 /**
  * Compute lesson statuses for a list of lessons (same module, sorted by order_index).
  * Rules: first is available; lesson N+1 is available only when lesson N is completed.
@@ -10,11 +15,18 @@ export async function getLessonStatuses(
   studentId: string,
   lessons: Lesson[]
 ): Promise<Map<number, LessonStatus>> {
-  const map = new Map<number, LessonStatus>();
-  if (lessons.length === 0) return map;
-
   const lessonIds = lessons.map((l) => l.id);
   const progress = await getProgressByLessonIds(studentId, lessonIds);
+
+  return getLessonStatusesFromProgress(lessons, progress);
+}
+
+export function getLessonStatusesFromProgress(
+  lessons: Lesson[],
+  progress: LessonProgressMap
+): Map<number, LessonStatus> {
+  const map = new Map<number, LessonStatus>();
+  if (lessons.length === 0) return map;
 
   for (let i = 0; i < lessons.length; i++) {
     const lesson = lessons[i];

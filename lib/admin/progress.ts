@@ -7,6 +7,12 @@ import type {
   AdminStudentProgressOverview,
 } from "@/lib/admin/types";
 
+const ADMIN_MODULE_SELECT =
+  "id, title, slug, description, short_description, order_index, thumbnail_url, icon_url, is_published, created_at, updated_at";
+
+const ADMIN_LESSON_SELECT =
+  "id, module_id, title, slug, description, takeaway, action_items, video_url, video_provider, video_duration_seconds, thumbnail_url, mux_asset_id, mux_playback_id, mux_playback_policy, mux_status, mux_upload_id, mux_error_message, order_index, is_published, created_at, updated_at";
+
 /**
  * Load published curriculum + progress for a student (admin).
  */
@@ -34,7 +40,7 @@ export async function buildAdminStudentProgressDetail(
 
   const { data: modRows } = await db
     .from("modules")
-    .select("*")
+    .select(ADMIN_MODULE_SELECT)
     .eq("is_published", true)
     .order("order_index", { ascending: true });
 
@@ -45,7 +51,7 @@ export async function buildAdminStudentProgressDetail(
     moduleIds.length > 0
       ? await db
           .from("lessons")
-          .select("*")
+          .select(ADMIN_LESSON_SELECT)
           .eq("is_published", true)
           .in("module_id", moduleIds)
           .order("order_index", { ascending: true })
@@ -61,14 +67,18 @@ export async function buildAdminStudentProgressDetail(
 
   const allLessonIds = (lessonRows ?? []).map((l) => (l as { id: number }).id);
 
-  const { data: progressRows } =
+  const [progressResult, examByModule] = await Promise.all([
     allLessonIds.length > 0
-      ? await db
+      ? db
           .from("progress")
           .select("lesson_id, watched, watched_at")
           .eq("student_id", studentId)
           .in("lesson_id", allLessonIds)
-      : { data: [] as { lesson_id: number; watched: boolean; watched_at: string | null }[] };
+      : { data: [] as { lesson_id: number; watched: boolean; watched_at: string | null }[] },
+    getExamSummariesByModuleForStudent(studentId, moduleIds),
+  ]);
+
+  const progressRows = progressResult.data;
 
   const progressByLesson = new Map<
     number,
@@ -85,11 +95,6 @@ export async function buildAdminStudentProgressDetail(
       watched_at: row.watched_at,
     });
   }
-
-  const examByModule = await getExamSummariesByModuleForStudent(
-    studentId,
-    moduleIds
-  );
 
   let completedLessons = 0;
   let totalLessonsPublished = 0;

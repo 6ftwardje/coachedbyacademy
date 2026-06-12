@@ -8,6 +8,8 @@ out/
 # Env (keep secrets local)
 .env
 .env*.local
+supabase/.temp/
+tsconfig.tsbuildinfo
 
 # Debug / OS
 .DS_Store

@@ -5,6 +5,7 @@ import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { AccessLevelSelect } from "@/components/admin/AccessLevelSelect";
 import { StudentProgressPanel } from "@/components/admin/StudentProgressPanel";
 import { StudentExamOverview } from "@/components/admin/StudentExamOverview";
+import { StudentModuleAccessPanel } from "@/components/admin/StudentModuleAccessPanel";
 import { AdminDangerZone } from "@/components/admin/AdminDangerZone";
 import { ExamAnalyticsPlaceholder } from "@/components/admin/ExamAnalyticsPlaceholder";
 import { getAdminStudentDetail } from "@/lib/admin/students";
@@ -23,7 +24,7 @@ export default async function AdminStudentDetailPage({
     notFound();
   }
 
-  const { student, progressOverview, modules } = detail;
+  const { student, progressOverview, modules, explicitModuleAccessIds } = detail;
   const label = student.name?.trim() || student.email;
 
   const pct =
@@ -127,6 +128,12 @@ export default async function AdminStudentDetailPage({
                 </div>
               </div>
             </section>
+
+            <StudentModuleAccessPanel
+              modules={modules}
+              selectedModuleIds={explicitModuleAccessIds}
+              studentId={student.id}
+            />
 
             <section className="space-y-3" aria-labelledby="modules-heading">
               <h2 id="modules-heading" className="cb-section-title">

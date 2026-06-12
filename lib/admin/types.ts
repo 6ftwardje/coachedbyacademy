@@ -39,4 +39,5 @@ export type AdminStudentDetail = {
   student: Student;
   progressOverview: AdminStudentProgressOverview;
   modules: AdminModuleProgressBlock[];
+  explicitModuleAccessIds: number[];
 };

@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getExamsByModuleIds, getPassedExamIdsForStudent } from "@/lib/exams";
 import { getLessonActionProgress, normalizeLessonActions } from "@/lib/lesson-actions";
 import { getPublishedLessonsByModuleIds } from "@/lib/lessons";
-import { getModuleAccessMap } from "@/lib/module-gate";
+import { getModuleAccessMap, getStudentModuleAccessScope } from "@/lib/module-gate";
 import { getPublishedModules } from "@/lib/modules";
+import { timeAsync } from "@/lib/perf";
 import { getProgressByLessonIds } from "@/lib/progress";
 import type { DashboardStats, Exam, Lesson, Module } from "@/lib/types";
 
@@ -82,132 +83,140 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 export async function getDashboardOverview(
   studentId: string
 ): Promise<DashboardOverview> {
-  const modules = await getPublishedModules();
-  const orderedModules = [...modules].sort((a, b) => a.order_index - b.order_index);
-  const moduleIds = orderedModules.map((module) => module.id);
-  const [accessMap, examMap, lessons] = await Promise.all([
-    getModuleAccessMap(studentId, orderedModules),
-    getExamsByModuleIds(moduleIds),
-    getPublishedLessonsByModuleIds(moduleIds),
-  ]);
-  const lessonIds = lessons.map((lesson) => lesson.id);
-  const [passedExamIds, progressMap] = await Promise.all([
-    getPassedExamIdsForStudent(
-      studentId,
-      [...examMap.values()].map((exam) => exam.id)
-    ),
-    getProgressByLessonIds(studentId, lessonIds),
-  ]);
+  return timeAsync("[perf] dashboard.query", async () => {
+    const [allModules, accessScope] = await Promise.all([
+      getPublishedModules(),
+      getStudentModuleAccessScope(studentId),
+    ]);
+    const modules = accessScope.hasExplicitAccess
+      ? allModules.filter((module) => accessScope.moduleIds.has(module.id))
+      : allModules;
+    const orderedModules = [...modules].sort((a, b) => a.order_index - b.order_index);
+    const moduleIds = orderedModules.map((module) => module.id);
+    const [accessMap, examMap, lessons] = await Promise.all([
+      getModuleAccessMap(studentId, orderedModules, accessScope),
+      getExamsByModuleIds(moduleIds),
+      getPublishedLessonsByModuleIds(moduleIds),
+    ]);
+    const lessonIds = lessons.map((lesson) => lesson.id);
+    const [passedExamIds, progressMap] = await Promise.all([
+      getPassedExamIdsForStudent(
+        studentId,
+        [...examMap.values()].map((exam) => exam.id)
+      ),
+      getProgressByLessonIds(studentId, lessonIds),
+    ]);
 
-  const lessonsByModule = new Map<number, Lesson[]>();
-  for (const lesson of lessons) {
-    const list = lessonsByModule.get(lesson.module_id) ?? [];
-    list.push(lesson);
-    lessonsByModule.set(lesson.module_id, list);
-  }
+    const lessonsByModule = new Map<number, Lesson[]>();
+    for (const lesson of lessons) {
+      const list = lessonsByModule.get(lesson.module_id) ?? [];
+      list.push(lesson);
+      lessonsByModule.set(lesson.module_id, list);
+    }
 
-  const summaries = orderedModules.map((module) => {
-    const moduleLessons = lessonsByModule.get(module.id) ?? [];
-    const completedLessons = moduleLessons.filter(
-      (lesson) => progressMap.get(lesson.id)?.watched === true
-    ).length;
-    const exam = examMap.get(module.id);
-    const state: DashboardModuleState =
-      accessMap.get(module.id) !== true
-        ? "locked"
-        : exam && passedExamIds.has(exam.id)
-          ? "completed"
-          : "available";
+    const summaries = orderedModules.map((module) => {
+      const moduleLessons = lessonsByModule.get(module.id) ?? [];
+      const completedLessons = moduleLessons.filter(
+        (lesson) => progressMap.get(lesson.id)?.watched === true
+      ).length;
+      const exam = examMap.get(module.id);
+      const state: DashboardModuleState =
+        accessMap.get(module.id) !== true
+          ? "locked"
+          : exam && passedExamIds.has(exam.id)
+            ? "completed"
+            : "available";
+
+      return {
+        module,
+        state,
+        completedLessons,
+        totalLessons: moduleLessons.length,
+      };
+    });
+
+    const currentSummary =
+      summaries.find((summary) => summary.state === "available") ?? null;
+
+    if (!currentSummary) {
+      const completedLessons = summaries.reduce(
+        (total, summary) => total + summary.completedLessons,
+        0
+      );
+      const totalLessons = summaries.reduce(
+        (total, summary) => total + summary.totalLessons,
+        0
+      );
+      return {
+        modules: summaries,
+        nextStep: {
+          type: "completed",
+          href: "/modules",
+          label: "Bekijk je traject",
+          module: summaries.at(-1)?.module ?? null,
+          completedLessons,
+          totalLessons,
+        },
+      };
+    }
+
+    const currentModule = currentSummary.module;
+    const currentLessons = lessonsByModule.get(currentModule.id) ?? [];
+    const nextLesson =
+      currentLessons.find(
+        (lesson) => progressMap.get(lesson.id)?.watched !== true
+      ) ?? null;
+
+    if (nextLesson) {
+      const actions = normalizeLessonActions(nextLesson.action_items);
+      return {
+        modules: summaries,
+        nextStep: {
+          type: "lesson",
+          href: `/lessons/${nextLesson.slug}`,
+          label:
+            currentSummary.completedLessons === 0
+              ? "Start met deze les"
+              : "Ga verder met de les",
+          lesson: nextLesson,
+          module: currentModule,
+          completedLessons: currentSummary.completedLessons,
+          totalLessons: currentSummary.totalLessons,
+          actions,
+          actionProgress:
+            actions.length > 0
+              ? await getLessonActionProgress(studentId, nextLesson.id)
+              : new Map<number, boolean>(),
+        },
+      };
+    }
+
+    const exam = examMap.get(currentModule.id);
+    if (exam) {
+      return {
+        modules: summaries,
+        nextStep: {
+          type: "exam",
+          href: `/modules/${currentModule.slug}/exam`,
+          label: "Maak de moduletoets",
+          module: currentModule,
+          exam,
+          completedLessons: currentSummary.completedLessons,
+          totalLessons: currentSummary.totalLessons,
+        },
+      };
+    }
 
     return {
-      module,
-      state,
-      completedLessons,
-      totalLessons: moduleLessons.length,
+      modules: summaries,
+      nextStep: {
+        type: "module",
+        href: `/modules/${currentModule.slug}`,
+        label: "Bekijk de module",
+        module: currentModule,
+        completedLessons: currentSummary.completedLessons,
+        totalLessons: currentSummary.totalLessons,
+      },
     };
   });
-
-  const currentSummary =
-    summaries.find((summary) => summary.state === "available") ?? null;
-
-  if (!currentSummary) {
-    const completedLessons = summaries.reduce(
-      (total, summary) => total + summary.completedLessons,
-      0
-    );
-    const totalLessons = summaries.reduce(
-      (total, summary) => total + summary.totalLessons,
-      0
-    );
-    return {
-      modules: summaries,
-      nextStep: {
-        type: "completed",
-        href: "/modules",
-        label: "Bekijk je traject",
-        module: summaries.at(-1)?.module ?? null,
-        completedLessons,
-        totalLessons,
-      },
-    };
-  }
-
-  const currentModule = currentSummary.module;
-  const currentLessons = lessonsByModule.get(currentModule.id) ?? [];
-  const nextLesson =
-    currentLessons.find(
-      (lesson) => progressMap.get(lesson.id)?.watched !== true
-    ) ?? null;
-
-  if (nextLesson) {
-    const actions = normalizeLessonActions(nextLesson.action_items);
-    return {
-      modules: summaries,
-      nextStep: {
-        type: "lesson",
-        href: `/lessons/${nextLesson.slug}`,
-        label:
-          currentSummary.completedLessons === 0
-            ? "Start met deze les"
-            : "Ga verder met de les",
-        lesson: nextLesson,
-        module: currentModule,
-        completedLessons: currentSummary.completedLessons,
-        totalLessons: currentSummary.totalLessons,
-        actions,
-        actionProgress:
-          actions.length > 0
-            ? await getLessonActionProgress(studentId, nextLesson.id)
-            : new Map<number, boolean>(),
-      },
-    };
-  }
-
-  const exam = examMap.get(currentModule.id);
-  if (exam) {
-    return {
-      modules: summaries,
-      nextStep: {
-        type: "exam",
-        href: `/modules/${currentModule.slug}/exam`,
-        label: "Maak de moduletoets",
-        module: currentModule,
-        exam,
-        completedLessons: currentSummary.completedLessons,
-        totalLessons: currentSummary.totalLessons,
-      },
-    };
-  }
-
-  return {
-    modules: summaries,
-    nextStep: {
-      type: "module",
-      href: `/modules/${currentModule.slug}`,
-      label: "Bekijk de module",
-      module: currentModule,
-      completedLessons: currentSummary.completedLessons,
-      totalLessons: currentSummary.totalLessons,
-    },
-  };
 }

@@ -31,6 +31,89 @@ body {
   color: var(--foreground);
 }
 
+.cb-global-loading-bar {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateZ(0);
+  transition: opacity 160ms ease;
+  contain: paint;
+}
+
+.cb-global-loading-bar::before {
+  content: "";
+  display: block;
+  width: 58%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 0%, transparent),
+    color-mix(in oklab, var(--accent) 62%, var(--background)),
+    var(--accent),
+    color-mix(in oklab, var(--accent) 0%, transparent)
+  );
+  box-shadow: 0 0 18px color-mix(in oklab, var(--accent) 35%, transparent);
+  transform: translateX(-110%) scaleX(0.4);
+  transform-origin: left center;
+}
+
+.cb-global-loading-bar[data-state="loading"],
+.cb-global-loading-bar[data-state="finishing"] {
+  opacity: 1;
+}
+
+.cb-global-loading-bar[data-state="loading"]::before {
+  animation: cb-global-loading-sweep 1.15s cubic-bezier(0.72, 0, 0.28, 1) infinite;
+}
+
+.cb-global-loading-bar[data-state="finishing"]::before {
+  width: 100%;
+  animation: cb-global-loading-finish 220ms ease-out forwards;
+  background: var(--accent);
+}
+
+@keyframes cb-global-loading-sweep {
+  0% {
+    transform: translateX(-115%) scaleX(0.38);
+  }
+  48% {
+    transform: translateX(18%) scaleX(0.82);
+  }
+  100% {
+    transform: translateX(125%) scaleX(0.5);
+  }
+}
+
+@keyframes cb-global-loading-finish {
+  from {
+    transform: translateX(0) scaleX(0.82);
+  }
+  to {
+    transform: translateX(0) scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-global-loading-bar {
+    transition: opacity 80ms linear;
+  }
+
+  .cb-global-loading-bar::before,
+  .cb-global-loading-bar[data-state="loading"]::before,
+  .cb-global-loading-bar[data-state="finishing"]::before {
+    width: 100%;
+    animation: none;
+    background: var(--accent);
+    transform: none;
+  }
+}
+
 /* Typography system (semantic utility classes).
    Keep the surface small so pages stay disciplined. */
 .cb-eyebrow {

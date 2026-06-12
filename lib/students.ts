@@ -2,6 +2,9 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Student } from "@/lib/types";
 
+const STUDENT_SELECT =
+  "id, email, name, auth_user_id, access_level, created_at, updated_at, last_seen, phone";
+
 export const getCurrentAuthUser = cache(async function getCurrentAuthUser() {
   const supabase = await createClient();
   const {
@@ -24,7 +27,7 @@ export const getCurrentStudent = cache(async function getCurrentStudent(): Promi
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("students")
-    .select("*")
+    .select(STUDENT_SELECT)
     .eq("auth_user_id", user.id)
     .maybeSingle();
 

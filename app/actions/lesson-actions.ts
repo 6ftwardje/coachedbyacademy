@@ -7,6 +7,7 @@ import {
   upsertLessonActionProgress,
 } from "@/lib/lesson-actions";
 import { ensureCurrentStudent } from "@/lib/students";
+import { canStudentAccessModule } from "@/lib/module-gate";
 
 export async function toggleLessonAction(
   lessonId: number,
@@ -22,6 +23,11 @@ export async function toggleLessonAction(
   const actions = normalizeLessonActions(lesson?.action_items);
   if (!lesson || !Number.isInteger(actionIndex) || actionIndex < 0 || actionIndex >= actions.length) {
     return { success: false, error: "Deze opdracht bestaat niet meer." };
+  }
+
+  const canAccessModule = await canStudentAccessModule(student.id, lesson.module_id);
+  if (!canAccessModule) {
+    return { success: false, error: "Je hebt geen toegang tot deze opdracht." };
   }
 
   const { error } = await upsertLessonActionProgress({

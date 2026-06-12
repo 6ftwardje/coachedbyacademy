@@ -1,13 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Exam, ExamQuestion, ExamResult } from "@/lib/types";
 
+const EXAM_SELECT =
+  "id, module_id, title, description, passing_score, is_published, created_at, updated_at";
+
+const EXAM_QUESTION_SELECT =
+  "id, exam_id, question, options, correct_answer, order_index, created_at, updated_at";
+
+const EXAM_RESULT_SELECT =
+  "id, student_id, exam_id, score, passed, submitted_at, created_at";
+
 export async function getExamByModuleId(
   moduleId: number
 ): Promise<Exam | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("exams")
-    .select("*")
+    .select(EXAM_SELECT)
     .eq("module_id", moduleId)
     .eq("is_published", true)
     .maybeSingle();
@@ -25,7 +34,7 @@ export async function getExamsByModuleIds(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("exams")
-    .select("*")
+    .select(EXAM_SELECT)
     .in("module_id", moduleIds)
     .eq("is_published", true);
 
@@ -45,7 +54,7 @@ export async function getExamQuestions(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("exam_questions")
-    .select("*")
+    .select(EXAM_QUESTION_SELECT)
     .eq("exam_id", examId)
     .order("order_index", { ascending: true });
 
@@ -112,7 +121,7 @@ export async function getLatestExamResult(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("exam_results")
-    .select("*")
+    .select(EXAM_RESULT_SELECT)
     .eq("student_id", studentId)
     .eq("exam_id", examId)
     .order("submitted_at", { ascending: false })

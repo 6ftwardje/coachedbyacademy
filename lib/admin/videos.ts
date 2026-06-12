@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin/access";
+import { timeAsync } from "@/lib/perf";
 import { createClient } from "@/lib/supabase/server";
 import type { Lesson, Module } from "@/lib/types";
 
@@ -108,10 +109,12 @@ export async function listModulesForVideoAdmin(): Promise<Module[]> {
 }
 
 export async function listModuleVideoBlocksAdmin(): Promise<AdminModuleVideoBlock[]> {
-  const [modules, lessons] = await Promise.all([
-    listModulesForVideoAdmin(),
-    listLessonsForVideoAdmin(),
-  ]);
+  const [modules, lessons] = await timeAsync("[perf] admin.list.query", () =>
+    Promise.all([
+      listModulesForVideoAdmin(),
+      listLessonsForVideoAdmin(),
+    ])
+  );
 
   return modules.map((module) => ({
     module,
@@ -300,13 +303,15 @@ export async function deleteEmptyModuleAdmin(
   }
 
   const db = await createClient();
-  const { count, error: countError } = await db
+  const { data: existingLesson, error: countError } = await db
     .from("lessons")
-    .select("*", { count: "exact", head: true })
-    .eq("module_id", moduleId);
+    .select("id")
+    .eq("module_id", moduleId)
+    .limit(1)
+    .maybeSingle();
 
   if (countError) return { error: countError.message };
-  if ((count ?? 0) > 0) {
+  if (existingLesson) {
     return {
       error:
         "This module still has lessons. Delete or move those lessons before deleting the module.",

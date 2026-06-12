@@ -3,7 +3,6 @@ import { CourseThumbnail } from "@/components/CourseThumbnail";
 import { ModuleStateBadge } from "@/components/StatusBadge";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { ContentSection } from "@/components/layout/ContentSection";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { RightRailCard } from "@/components/layout/RightRailCard";
 import { asText } from "@/lib/as-text";
 import {
@@ -112,48 +111,39 @@ export default async function DashboardPage() {
         }
       : null;
 
-  const rail = (
-    <>
-      {actionSummary && (
-        <RightRailCard title="Bij deze les">
-          <p className="text-sm font-semibold text-[var(--foreground)]">
-            {actionSummary.completed}/{actionSummary.total} opdrachten afgerond
+  const rail = actionSummary ? (
+    <RightRailCard title="Bij deze les">
+      <p className="text-sm font-semibold text-[var(--foreground)]">
+        {actionSummary.completed}/{actionSummary.total} opdrachten afgerond
+      </p>
+      {actionSummary.next ? (
+        <>
+          <p className="mt-3 cb-caption leading-relaxed">
+            Eerstvolgende actie:
           </p>
-          {actionSummary.next ? (
-            <>
-              <p className="mt-3 cb-caption leading-relaxed">
-                Eerstvolgende actie:
-              </p>
-              <p className="mt-1 text-sm font-medium leading-relaxed text-[var(--foreground)]">
-                {actionSummary.next}
-              </p>
-            </>
-          ) : (
-            <p className="mt-3 cb-caption">
-              Alle opdrachten bij deze les zijn afgerond.
-            </p>
-          )}
-          <Link
-            href={nextStep.href}
-            className="mt-4 inline-flex text-sm font-semibold text-[var(--foreground)] underline-offset-4 hover:underline"
-          >
-            Bekijk de les
-          </Link>
-        </RightRailCard>
-      )}
-
-      <RightRailCard title="Zo werkt het">
-        <p className="cb-caption leading-relaxed">
-          Werk rustig in volgorde. Na de lessen rond je de module af met een
-          toets en komt het volgende blok vrij.
+          <p className="mt-1 text-sm font-medium leading-relaxed text-[var(--foreground)]">
+            {actionSummary.next}
+          </p>
+        </>
+      ) : (
+        <p className="mt-3 cb-caption">
+          Alle opdrachten bij deze les zijn afgerond.
         </p>
-      </RightRailCard>
-    </>
-  );
+      )}
+      <Link
+        href={nextStep.href}
+        className="mt-4 inline-flex text-sm font-semibold text-[var(--foreground)] underline-offset-4 hover:underline"
+      >
+        Bekijk de les
+      </Link>
+    </RightRailCard>
+  ) : null;
 
   return (
     <div>
-      <PageHeader title={title} />
+      <header className="mb-6 sm:mb-8">
+        <h1 className="cb-page-title">{title}</h1>
+      </header>
       <AppPageLayout
         rail={rail}
         main={

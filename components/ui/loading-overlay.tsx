@@ -3,12 +3,9 @@
 import Image from "next/image";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { ACADEMY_LOGO_SRC } from "@/lib/brand";
 
-const ACADEMY_LOGO_SRC =
-  "https://vldvzhxmyuybfpiezbcd.supabase.co/storage/v1/object/public/Assets/coachedbyclub_sitelogo.png";
-
-/** Logo opacity fade: 50% → 100% over this duration (ms), then exit sequence. */
-const LOGO_FADE_MS = 550;
+const OVERLAY_MS = 260;
 
 interface LoadingOverlayProps {
   onComplete?: () => void;
@@ -16,49 +13,23 @@ interface LoadingOverlayProps {
 }
 
 export function LoadingOverlay({ onComplete, children }: LoadingOverlayProps) {
-  const [logoOpacity, setLogoOpacity] = useState(0.5);
-  const [isClipping, setIsClipping] = useState(false);
-  const [showContent, setShowContent] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
 
   useEffect(() => {
-    const startTime = Date.now();
+    const timeout = window.setTimeout(() => {
+      setShowOverlay(false);
+      onComplete?.();
+    }, OVERLAY_MS);
 
-    const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
-
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const t = Math.min(elapsed / LOGO_FADE_MS, 1);
-      const eased = easeOutCubic(t);
-      // 0.5 → 1
-      setLogoOpacity(0.5 + eased * 0.5);
-
-      if (t < 1) {
-        requestAnimationFrame(tick);
-      } else {
-        setLogoOpacity(1);
-        setTimeout(() => {
-          setIsClipping(true);
-
-          setTimeout(() => {
-            setShowContent(true);
-            onComplete?.();
-          }, 400);
-        }, 100);
-      }
-    };
-
-    requestAnimationFrame(tick);
+    return () => window.clearTimeout(timeout);
   }, [onComplete]);
 
   return (
     <>
       <div
-        className="fixed inset-0 z-[45] flex items-center justify-center bg-[var(--background)] transition-[clip-path] duration-[400ms] ease-in-out"
-        style={{
-          clipPath: isClipping ? "inset(0 0 100% 0)" : "inset(0 0 0% 0)",
-          pointerEvents: isClipping ? "none" : "auto",
-        }}
-        aria-hidden={isClipping}
+        className="pointer-events-none fixed inset-0 z-[45] flex items-center justify-center bg-[var(--background)] transition-opacity duration-300 ease-out motion-reduce:hidden"
+        style={{ opacity: showOverlay ? 1 : 0 }}
+        aria-hidden={!showOverlay}
       >
         <Image
           src={ACADEMY_LOGO_SRC}
@@ -66,21 +37,12 @@ export function LoadingOverlay({ onComplete, children }: LoadingOverlayProps) {
           width={220}
           height={64}
           className="h-8 w-auto max-w-[min(40vw,200px)] select-none sm:h-9"
-          style={{ opacity: logoOpacity }}
           priority
           decoding="async"
         />
       </div>
 
-      <div
-        className="transition-[opacity,transform] duration-[600ms] ease-out"
-        style={{
-          opacity: showContent ? 1 : 0,
-          transform: showContent ? "translateY(0)" : "translateY(100px)",
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </>
   );
 }

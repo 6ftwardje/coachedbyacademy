@@ -1,5 +1,47 @@
 import type { Module } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
+import { getPublishedModules } from "@/lib/modules";
+import { isMissingSupabaseTableError } from "@/lib/supabase/errors";
+
+const STUDENT_MODULE_ACCESS_TABLE = "student_module_access";
+
+export type StudentModuleAccessScope = {
+  hasExplicitAccess: boolean;
+  moduleIds: Set<number>;
+};
+
+export async function getStudentModuleAccessScope(
+  studentId: string
+): Promise<StudentModuleAccessScope> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("student_module_access")
+    .select("module_id")
+    .eq("student_id", studentId);
+
+  if (error) {
+    if (!isMissingSupabaseTableError(error, STUDENT_MODULE_ACCESS_TABLE)) {
+      console.error("getStudentModuleAccessScope", error.message);
+    }
+
+    return { hasExplicitAccess: false, moduleIds: new Set() };
+  }
+
+  const moduleIds = new Set((data ?? []).map((row) => Number(row.module_id)));
+  return {
+    hasExplicitAccess: moduleIds.size > 0,
+    moduleIds,
+  };
+}
+
+export async function getVisibleModulesForStudent(
+  studentId: string,
+  modules: Module[]
+): Promise<Module[]> {
+  const scope = await getStudentModuleAccessScope(studentId);
+  if (!scope.hasExplicitAccess) return modules;
+  return modules.filter((module) => scope.moduleIds.has(module.id));
+}
 
 /**
  * For each module (by order_index), check if the student has passed the *previous* module's exam.
@@ -8,12 +50,21 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function getModuleAccessMap(
   studentId: string,
-  modules: Module[]
+  modules: Module[],
+  scope?: StudentModuleAccessScope
 ): Promise<Map<number, boolean>> {
   const map = new Map<number, boolean>();
   if (modules.length === 0) return map;
 
   const ordered = [...modules].sort((a, b) => a.order_index - b.order_index);
+  const accessScope = scope ?? (await getStudentModuleAccessScope(studentId));
+
+  if (accessScope.hasExplicitAccess) {
+    for (const mod of ordered) {
+      map.set(mod.id, accessScope.moduleIds.has(mod.id));
+    }
+    return map;
+  }
 
   const supabase = await createClient();
   const { data: results } = await supabase
@@ -59,4 +110,13 @@ export function canAccessModule(
   accessMap: Map<number, boolean>
 ): boolean {
   return accessMap.get(moduleId) === true;
+}
+
+export async function canStudentAccessModule(
+  studentId: string,
+  moduleId: number
+): Promise<boolean> {
+  const modules = await getPublishedModules();
+  const accessMap = await getModuleAccessMap(studentId, modules);
+  return canAccessModule(moduleId, accessMap);
 }
