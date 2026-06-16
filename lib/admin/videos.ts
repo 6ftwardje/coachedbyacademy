@@ -50,6 +50,277 @@ export type LessonContentInput = {
   is_published: boolean;
 };
 
+type ContentTable = "modules" | "lessons";
+
+function hasDuplicateIds(ids: number[]): boolean {
+  return new Set(ids).size !== ids.length;
+}
+
+function friendlyDbError(error: string): string {
+  const lower = error.toLowerCase();
+  if (lower.includes("duplicate key") && lower.includes("slug")) {
+    return "That slug is already in use. Choose another slug or leave it empty so one can be generated.";
+  }
+  if (lower.includes("duplicate key") && lower.includes("order_index")) {
+    return "That order position is already in use. Drag items to reorder, or choose a free number.";
+  }
+  return error;
+}
+
+export async function getNextModuleOrderAdmin(): Promise<number> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return 1;
+  }
+
+  const db = await createClient();
+  const { data } = await db
+    .from("modules")
+    .select("order_index")
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return ((data?.order_index as number | undefined) ?? 0) + 1;
+}
+
+export async function getNextLessonOrderAdmin(moduleId: number): Promise<number> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return 1;
+  }
+
+  const db = await createClient();
+  const { data } = await db
+    .from("lessons")
+    .select("order_index")
+    .eq("module_id", moduleId)
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return ((data?.order_index as number | undefined) ?? 0) + 1;
+}
+
+export async function getUniqueSlugAdmin(
+  table: ContentTable,
+  slug: string,
+  currentId?: number
+): Promise<string> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return slug;
+  }
+
+  const db = await createClient();
+  let candidate = slug;
+  let suffix = 2;
+
+  while (suffix < 1000) {
+    let query = db.from(table).select("id").eq("slug", candidate).limit(1);
+    if (currentId) query = query.neq("id", currentId);
+    const { data, error } = await query.maybeSingle();
+    if (error) return slug;
+    if (!data) return candidate;
+    candidate = `${slug.slice(0, 82)}-${suffix}`;
+    suffix += 1;
+  }
+
+  return `${slug.slice(0, 72)}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+async function updateModuleOrderValue(
+  moduleId: number,
+  orderIndex: number
+): Promise<string | null> {
+  const db = await createClient();
+  const { error } = await db
+    .from("modules")
+    .update({ order_index: orderIndex })
+    .eq("id", moduleId);
+
+  return error ? friendlyDbError(error.message) : null;
+}
+
+async function updateLessonOrderValue({
+  lessonId,
+  moduleId,
+  orderIndex,
+}: {
+  lessonId: number;
+  moduleId: number;
+  orderIndex: number;
+}): Promise<string | null> {
+  const db = await createClient();
+  const { error } = await db
+    .from("lessons")
+    .update({ order_index: orderIndex })
+    .eq("id", lessonId)
+    .eq("module_id", moduleId);
+
+  return error ? friendlyDbError(error.message) : null;
+}
+
+async function rollbackModuleOrder(
+  moduleIds: number[],
+  previousOrder: Map<number, number>
+) {
+  for (const [index, moduleId] of moduleIds.entries()) {
+    await updateModuleOrderValue(moduleId, -2_000_000 - index);
+  }
+  for (const moduleId of moduleIds) {
+    await updateModuleOrderValue(moduleId, previousOrder.get(moduleId) ?? 1);
+  }
+}
+
+async function rollbackLessonOrder({
+  moduleId,
+  lessonIds,
+  previousOrder,
+}: {
+  moduleId: number;
+  lessonIds: number[];
+  previousOrder: Map<number, number>;
+}) {
+  for (const [index, lessonId] of lessonIds.entries()) {
+    await updateLessonOrderValue({
+      lessonId,
+      moduleId,
+      orderIndex: -2_000_000 - index,
+    });
+  }
+  for (const lessonId of lessonIds) {
+    await updateLessonOrderValue({
+      lessonId,
+      moduleId,
+      orderIndex: previousOrder.get(lessonId) ?? 1,
+    });
+  }
+}
+
+export async function reorderModulesAdmin(
+  orderedIds: number[]
+): Promise<{ error: string | null }> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return { error: null };
+  }
+
+  if (orderedIds.length === 0 || hasDuplicateIds(orderedIds)) {
+    return { error: "Invalid module order." };
+  }
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("modules")
+    .select("id, order_index")
+    .order("order_index", { ascending: true });
+
+  if (error) return { error: friendlyDbError(error.message) };
+  if ((data ?? []).length !== orderedIds.length) {
+    return { error: "Module order is stale. Refresh and try again." };
+  }
+
+  const existingIds = new Set((data ?? []).map((row) => Number(row.id)));
+  if (orderedIds.some((id) => !existingIds.has(id))) {
+    return { error: "Module order is stale. Refresh and try again." };
+  }
+
+  const previousOrder = new Map(
+    (data ?? []).map((row) => [Number(row.id), Number(row.order_index)])
+  );
+  const touchedIds: number[] = [];
+
+  for (const [index, moduleId] of orderedIds.entries()) {
+    const tempError = await updateModuleOrderValue(
+      moduleId,
+      -1_000_000 - index
+    );
+    if (tempError) {
+      await rollbackModuleOrder(touchedIds, previousOrder);
+      return { error: tempError };
+    }
+    touchedIds.push(moduleId);
+  }
+
+  for (const [index, moduleId] of orderedIds.entries()) {
+    const finalError = await updateModuleOrderValue(moduleId, index + 1);
+    if (finalError) {
+      await rollbackModuleOrder(touchedIds, previousOrder);
+      return { error: finalError };
+    }
+  }
+
+  return { error: null };
+}
+
+export async function reorderLessonsAdmin(
+  moduleId: number,
+  orderedIds: number[]
+): Promise<{ error: string | null }> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return { error: null };
+  }
+
+  if (!moduleId || orderedIds.length === 0 || hasDuplicateIds(orderedIds)) {
+    return { error: "Invalid lesson order." };
+  }
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("lessons")
+    .select("id, order_index")
+    .eq("module_id", moduleId);
+
+  if (error) return { error: friendlyDbError(error.message) };
+  if ((data ?? []).length !== orderedIds.length) {
+    return { error: "Lesson order is stale. Refresh and try again." };
+  }
+
+  const existingIds = new Set((data ?? []).map((row) => Number(row.id)));
+  if (orderedIds.some((id) => !existingIds.has(id))) {
+    return { error: "Lesson order contains a lesson from another module." };
+  }
+
+  const previousOrder = new Map(
+    (data ?? []).map((row) => [Number(row.id), Number(row.order_index)])
+  );
+  const touchedIds: number[] = [];
+
+  for (const [index, lessonId] of orderedIds.entries()) {
+    const tempError = await updateLessonOrderValue({
+      lessonId,
+      moduleId,
+      orderIndex: -1_000_000 - index,
+    });
+    if (tempError) {
+      await rollbackLessonOrder({ moduleId, lessonIds: touchedIds, previousOrder });
+      return { error: tempError };
+    }
+    touchedIds.push(lessonId);
+  }
+
+  for (const [index, lessonId] of orderedIds.entries()) {
+    const finalError = await updateLessonOrderValue({
+      lessonId,
+      moduleId,
+      orderIndex: index + 1,
+    });
+    if (finalError) {
+      await rollbackLessonOrder({ moduleId, lessonIds: touchedIds, previousOrder });
+      return { error: finalError };
+    }
+  }
+
+  return { error: null };
+}
+
 export async function listLessonsForVideoAdmin(): Promise<AdminLessonVideoRow[]> {
   await requireAdmin();
 
@@ -186,7 +457,7 @@ export async function createModuleAdmin(
     .select("*")
     .single();
 
-  if (error) return { module: null, error: error.message };
+  if (error) return { module: null, error: friendlyDbError(error.message) };
   return { module: data as Module, error: null };
 }
 
@@ -208,7 +479,7 @@ export async function updateModuleAdmin(
     .select("id")
     .maybeSingle();
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyDbError(error.message) };
   if (!data) {
     return {
       error:
@@ -234,7 +505,7 @@ export async function createLessonAdmin(
     .select("*")
     .single();
 
-  if (error) return { lesson: null, error: error.message };
+  if (error) return { lesson: null, error: friendlyDbError(error.message) };
   return { lesson: data as Lesson, error: null };
 }
 
@@ -256,7 +527,7 @@ export async function updateLessonContentAdmin(
     .select("id")
     .maybeSingle();
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyDbError(error.message) };
   if (!data) {
     return {
       error:

@@ -9,7 +9,12 @@ import {
   createModuleAdmin,
   deleteEmptyModuleAdmin,
   deleteLessonAdmin,
+  getNextLessonOrderAdmin,
+  getNextModuleOrderAdmin,
   getLessonForVideoAdmin,
+  getUniqueSlugAdmin,
+  reorderLessonsAdmin,
+  reorderModulesAdmin,
   updateLessonContentAdmin,
   updateLessonVideoAdmin,
   updateModuleAdmin,
@@ -37,6 +42,7 @@ const THUMBNAIL_MIME_EXTENSIONS: Record<string, string> = {
 };
 
 type ThumbnailTarget = "modules" | "lessons";
+type ContentTable = "modules" | "lessons";
 
 type ThumbnailUploadInput = {
   name?: string;
@@ -54,6 +60,13 @@ function parsePositiveInteger(value: unknown): number | null {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(n) || n <= 0) return null;
   return n;
+}
+
+function parsePositiveIntegerList(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  const parsed = value.map((item) => parsePositiveInteger(item));
+  if (parsed.some((item) => item === null)) return null;
+  return parsed as number[];
 }
 
 function asString(value: unknown): string {
@@ -104,14 +117,16 @@ function slugify(value: string): string {
     .slice(0, 90);
 }
 
-function readModuleInput(formData: FormData) {
+function readModuleInput(formData: FormData, options?: { requireOrder?: boolean }) {
   const title = asString(formData.get("title"));
   const slug = slugify(asString(formData.get("slug")) || title);
   const orderIndex = parsePositiveInteger(formData.get("order_index"));
 
   if (!title) return { error: "Title is required." as const };
   if (!slug) return { error: "Slug is required." as const };
-  if (!orderIndex) return { error: "Order must be a positive number." as const };
+  if (options?.requireOrder && !orderIndex) {
+    return { error: "Order must be a positive number." as const };
+  }
 
   return {
     input: {
@@ -126,7 +141,7 @@ function readModuleInput(formData: FormData) {
   };
 }
 
-function readLessonInput(formData: FormData) {
+function readLessonInput(formData: FormData, options?: { requireOrder?: boolean }) {
   const moduleId = parsePositiveInteger(formData.get("module_id"));
   const title = asString(formData.get("title"));
   const slug = slugify(asString(formData.get("slug")) || title);
@@ -135,7 +150,9 @@ function readLessonInput(formData: FormData) {
   if (!moduleId) return { error: "Choose a module." as const };
   if (!title) return { error: "Title is required." as const };
   if (!slug) return { error: "Slug is required." as const };
-  if (!orderIndex) return { error: "Order must be a positive number." as const };
+  if (options?.requireOrder && !orderIndex) {
+    return { error: "Order must be a positive number." as const };
+  }
 
   return {
     input: {
@@ -150,6 +167,33 @@ function readLessonInput(formData: FormData) {
       is_published: asBoolean(formData.get("is_published")),
     },
   };
+}
+
+async function prepareCreateInput<T extends { slug: string; order_index: number | null }>(
+  table: ContentTable,
+  input: T,
+  getNextOrder: () => Promise<number>
+): Promise<T & { order_index: number }> {
+  return {
+    ...input,
+    slug: await getUniqueSlugAdmin(table, input.slug),
+    order_index: input.order_index ?? (await getNextOrder()),
+  };
+}
+
+async function prepareUpdateSlug(
+  table: ContentTable,
+  slug: string,
+  currentId: number
+): Promise<{ slug: string } | { error: string }> {
+  const uniqueSlug = await getUniqueSlugAdmin(table, slug, currentId);
+  if (uniqueSlug !== slug) {
+    return {
+      error:
+        "That slug is already in use. Choose another slug or leave the current one unchanged.",
+    };
+  }
+  return { slug };
 }
 
 function getCorsOrigin(): string {
@@ -327,7 +371,10 @@ export async function adminCreateModule(
   const parsed = readModuleInput(formData);
   if ("error" in parsed) return { success: false, error: parsed.error };
 
-  const { module, error } = await createModuleAdmin(parsed.input);
+  const input = await prepareCreateInput("modules", parsed.input, () =>
+    getNextModuleOrderAdmin()
+  );
+  const { module, error } = await createModuleAdmin(input);
   if (error) return { success: false, error };
 
   logAdminAction("content.module_created", {
@@ -347,10 +394,20 @@ export async function adminUpdateModule(
   const moduleId = parsePositiveInteger(moduleIdRaw);
   if (!moduleId) return { success: false, error: "Invalid module." };
 
-  const parsed = readModuleInput(formData);
+  const parsed = readModuleInput(formData, { requireOrder: true });
   if ("error" in parsed) return { success: false, error: parsed.error };
+  if (!parsed.input.order_index) {
+    return { success: false, error: "Order must be a positive number." };
+  }
 
-  const { error } = await updateModuleAdmin(moduleId, parsed.input);
+  const slug = await prepareUpdateSlug("modules", parsed.input.slug, moduleId);
+  if ("error" in slug) return { success: false, error: slug.error };
+
+  const { error } = await updateModuleAdmin(moduleId, {
+    ...parsed.input,
+    slug: slug.slug,
+    order_index: parsed.input.order_index,
+  });
   if (error) return { success: false, error };
 
   logAdminAction("content.module_updated", {
@@ -359,7 +416,7 @@ export async function adminUpdateModule(
   });
 
   revalidateVideoPaths();
-  revalidatePath(`/modules/${parsed.input.slug}`);
+  revalidatePath(`/modules/${slug.slug}`);
   return { success: true };
 }
 
@@ -370,7 +427,10 @@ export async function adminCreateLesson(
   const parsed = readLessonInput(formData);
   if ("error" in parsed) return { success: false, error: parsed.error };
 
-  const { lesson, error } = await createLessonAdmin(parsed.input);
+  const input = await prepareCreateInput("lessons", parsed.input, () =>
+    getNextLessonOrderAdmin(parsed.input.module_id)
+  );
+  const { lesson, error } = await createLessonAdmin(input);
   if (error) return { success: false, error };
 
   logAdminAction("content.lesson_created", {
@@ -389,8 +449,11 @@ export async function adminCreateLessonMuxUpload(
   const parsed = readLessonInput(formData);
   if ("error" in parsed) return { success: false, error: parsed.error };
 
+  const input = await prepareCreateInput("lessons", parsed.input, () =>
+    getNextLessonOrderAdmin(parsed.input.module_id)
+  );
   const { lesson, error } = await createLessonAdmin({
-    ...parsed.input,
+    ...input,
     video_provider: "mux",
     mux_status: "preparing",
     mux_playback_policy: "public",
@@ -448,10 +511,20 @@ export async function adminUpdateLesson(
   const lessonId = parseLessonId(lessonIdRaw);
   if (!lessonId) return { success: false, error: "Invalid lesson." };
 
-  const parsed = readLessonInput(formData);
+  const parsed = readLessonInput(formData, { requireOrder: true });
   if ("error" in parsed) return { success: false, error: parsed.error };
+  if (!parsed.input.order_index) {
+    return { success: false, error: "Order must be a positive number." };
+  }
 
-  const { error } = await updateLessonContentAdmin(lessonId, parsed.input);
+  const slug = await prepareUpdateSlug("lessons", parsed.input.slug, lessonId);
+  if ("error" in slug) return { success: false, error: slug.error };
+
+  const { error } = await updateLessonContentAdmin(lessonId, {
+    ...parsed.input,
+    slug: slug.slug,
+    order_index: parsed.input.order_index,
+  });
   if (error) return { success: false, error };
 
   logAdminAction("content.lesson_updated", {
@@ -459,7 +532,7 @@ export async function adminUpdateLesson(
     metadata: { lessonId, moduleId: parsed.input.module_id },
   });
 
-  revalidateVideoPaths(parsed.input.slug);
+  revalidateVideoPaths(slug.slug);
   return { success: true };
 }
 
@@ -498,6 +571,48 @@ export async function adminDeleteModule(
   logAdminAction("content.module_deleted", {
     actorStudentId: actorStudent.id,
     metadata: { moduleId },
+  });
+
+  revalidateVideoPaths();
+  return { success: true };
+}
+
+export async function adminReorderModules(
+  orderedIdsRaw: unknown
+): Promise<ActionResult> {
+  const { actorStudent } = await requireAdmin();
+  const orderedIds = parsePositiveIntegerList(orderedIdsRaw);
+  if (!orderedIds) return { success: false, error: "Invalid module order." };
+
+  const { error } = await reorderModulesAdmin(orderedIds);
+  if (error) return { success: false, error };
+
+  logAdminAction("content.modules_reordered", {
+    actorStudentId: actorStudent.id,
+    metadata: { orderedIds },
+  });
+
+  revalidateVideoPaths();
+  return { success: true };
+}
+
+export async function adminReorderLessons(
+  moduleIdRaw: unknown,
+  orderedIdsRaw: unknown
+): Promise<ActionResult> {
+  const { actorStudent } = await requireAdmin();
+  const moduleId = parsePositiveInteger(moduleIdRaw);
+  const orderedIds = parsePositiveIntegerList(orderedIdsRaw);
+  if (!moduleId || !orderedIds) {
+    return { success: false, error: "Invalid lesson order." };
+  }
+
+  const { error } = await reorderLessonsAdmin(moduleId, orderedIds);
+  if (error) return { success: false, error };
+
+  logAdminAction("content.lessons_reordered", {
+    actorStudentId: actorStudent.id,
+    metadata: { moduleId, orderedIds },
   });
 
   revalidateVideoPaths();

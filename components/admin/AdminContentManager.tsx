@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import type { FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -11,6 +12,8 @@ import {
   adminCreateThumbnailUpload,
   adminDeleteLesson,
   adminDeleteModule,
+  adminReorderLessons,
+  adminReorderModules,
   adminSyncMuxUpload,
   adminUpdateLesson,
   adminUpdateLessonThumbnail,
@@ -26,6 +29,7 @@ type PanelState =
   | { type: "empty" }
   | { type: "create-module" }
   | { type: "create-lesson"; moduleId?: number }
+  | { type: "bulk-upload"; moduleId?: number }
   | { type: "edit-module"; module: Module }
   | { type: "edit-lesson"; lesson: AdminLessonVideoRow };
 
@@ -34,11 +38,16 @@ type ConfirmState =
   | { type: "delete-module"; module: Module; lessonCount: number }
   | null;
 
+type DragState =
+  | { type: "module"; moduleId: number }
+  | { type: "lesson"; moduleId: number; lessonId: number }
+  | null;
+
 function Icon({
   name,
   className = "h-4 w-4",
 }: {
-  name: "edit" | "trash" | "plus" | "upload" | "refresh";
+  name: "edit" | "trash" | "plus" | "upload" | "refresh" | "grip";
   className?: string;
 }) {
   const common = {
@@ -77,6 +86,14 @@ function Icon({
     return (
       <svg {...common}>
         <path d="M20 6v5h-5M4 18v-5h5M18.4 10A6.5 6.5 0 0 0 7 6.6L4 10m2 4a6.5 6.5 0 0 0 11.4 3.4L20 14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (name === "grip") {
+    return (
+      <svg {...common}>
+        <path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
       </svg>
     );
   }
@@ -144,9 +161,11 @@ function putFileWithProgress(
 
 function ModuleFields({
   module,
+  defaultOrderIndex,
   onThumbnailFileChange,
 }: {
   module?: Module;
+  defaultOrderIndex?: number;
   onThumbnailFileChange: (file: File | null) => void;
 }) {
   return (
@@ -168,7 +187,7 @@ function ModuleFields({
         </label>
         <label className="space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Order</span>
-          <input name="order_index" type="number" min="1" defaultValue={module?.order_index ?? ""} required className={fieldClass()} />
+          <input name="order_index" type="number" min="1" defaultValue={module?.order_index ?? defaultOrderIndex ?? ""} className={fieldClass()} />
         </label>
       </div>
       <label className="space-y-1.5">
@@ -191,11 +210,13 @@ function LessonFields({
   lesson,
   modules,
   defaultModuleId,
+  defaultOrderIndex,
   onThumbnailFileChange,
 }: {
   lesson?: AdminLessonVideoRow;
   modules: Module[];
   defaultModuleId?: number;
+  defaultOrderIndex?: number;
   onThumbnailFileChange: (file: File | null) => void;
 }) {
   return (
@@ -220,7 +241,7 @@ function LessonFields({
         </label>
         <label className="space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Order</span>
-          <input name="order_index" type="number" min="1" defaultValue={lesson?.order_index ?? ""} required className={fieldClass()} />
+          <input name="order_index" type="number" min="1" defaultValue={lesson?.order_index ?? defaultOrderIndex ?? ""} className={fieldClass()} />
         </label>
       </div>
       <label className="space-y-1.5">
@@ -421,6 +442,7 @@ function DeleteConfirmModal({
 export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[] }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bulkFileInputRef = useRef<HTMLInputElement | null>(null);
   const [panel, setPanel] = useState<PanelState>({ type: "empty" });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [pending, startTransition] = useTransition();
@@ -435,6 +457,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
   const [deletedModuleIds, setDeletedModuleIds] = useState<Set<number>>(
     () => new Set()
   );
+  const [dragState, setDragState] = useState<DragState>(null);
 
   const visibleBlocks = useMemo(
     () =>
@@ -464,6 +487,16 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
     panel.type === "edit-module"
       ? modules.find((module) => module.id === panel.module.id) ?? panel.module
       : null;
+  const nextModuleOrder = useMemo(
+    () => Math.max(0, ...modules.map((module) => module.order_index)) + 1,
+    [modules]
+  );
+
+  function getNextLessonOrder(moduleId?: number): number | undefined {
+    if (!moduleId) return undefined;
+    const block = visibleBlocks.find((item) => item.module.id === moduleId);
+    return Math.max(0, ...(block?.lessons ?? []).map((lesson) => lesson.order_index)) + 1;
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -493,6 +526,74 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
   function refresh(messageText?: string) {
     if (messageText) setMessage(messageText);
     router.refresh();
+  }
+
+  function submitForm(
+    event: FormEvent<HTMLFormElement>,
+    handler: (formData: FormData) => void
+  ) {
+    event.preventDefault();
+    handler(new FormData(event.currentTarget));
+  }
+
+  function moveId(ids: number[], draggedId: number, targetId: number): number[] {
+    const fromIndex = ids.indexOf(draggedId);
+    const toIndex = ids.indexOf(targetId);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return ids;
+    const next = [...ids];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    return next;
+  }
+
+  function lessonTitleFromFile(file: File): string {
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    const title = baseName
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return title || "Untitled lesson";
+  }
+
+  function reorderModules(draggedId: number, targetId: number) {
+    const orderedIds = moveId(
+      visibleBlocks.map((block) => block.module.id),
+      draggedId,
+      targetId
+    );
+    if (orderedIds.join(",") === visibleBlocks.map((block) => block.module.id).join(",")) {
+      return;
+    }
+
+    resetFeedback();
+    startTransition(async () => {
+      const result = await adminReorderModules(orderedIds);
+      if (!result.success) {
+        setError(result.error ?? "Could not reorder modules.");
+        return;
+      }
+      refresh("Module order saved.");
+    });
+  }
+
+  function reorderLessons(moduleId: number, draggedId: number, targetId: number) {
+    const block = visibleBlocks.find((item) => item.module.id === moduleId);
+    if (!block) return;
+
+    const currentIds = block.lessons.map((lesson) => lesson.id);
+    const orderedIds = moveId(currentIds, draggedId, targetId);
+    if (orderedIds.join(",") === currentIds.join(",")) return;
+
+    resetFeedback();
+    startTransition(async () => {
+      const result = await adminReorderLessons(moduleId, orderedIds);
+      if (!result.success) {
+        setError(result.error ?? "Could not reorder lessons.");
+        return;
+      }
+      refresh("Lesson order saved.");
+    });
   }
 
   async function uploadThumbnailForEntity({
@@ -663,6 +764,85 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
     });
   }
 
+  function runBulkUpload(formData: FormData) {
+    resetFeedback();
+    const moduleId = Number(formData.get("module_id"));
+    const files = Array.from(bulkFileInputRef.current?.files ?? []);
+
+    if (!Number.isInteger(moduleId) || moduleId <= 0) {
+      setError("Choose a module for the bulk upload.");
+      return;
+    }
+    if (files.length === 0) {
+      setError("Choose one or more video files.");
+      return;
+    }
+
+    const invalidFile = files.find(
+      (file) => file.type && !file.type.startsWith("video/")
+    );
+    if (invalidFile) {
+      setError(`"${invalidFile.name}" is not a video file.`);
+      return;
+    }
+
+    startTransition(async () => {
+      let uploadedCount = 0;
+      const failures: string[] = [];
+
+      for (const [index, file] of files.entries()) {
+        const form = new FormData();
+        form.set("module_id", String(moduleId));
+        form.set("title", lessonTitleFromFile(file));
+        form.set("slug", "");
+        form.set("order_index", "");
+        form.set("description", "");
+        form.set("takeaway", "");
+        form.set("action_items", "");
+        form.set("thumbnail_url", "");
+
+        setProgress(0);
+        setMessage(`Uploading ${index + 1}/${files.length}: ${file.name}`);
+        const created = await adminCreateLessonMuxUpload(form);
+        if (
+          !created.success ||
+          !created.lessonId ||
+          !created.uploadId ||
+          !created.uploadUrl
+        ) {
+          failures.push(`${file.name}: ${created.error ?? "Could not create lesson upload."}`);
+          setProgress(null);
+          continue;
+        }
+
+        try {
+          await putFileWithProgress(created.uploadUrl, file, setProgress);
+          await adminSyncMuxUpload(created.lessonId, created.uploadId);
+          uploadedCount += 1;
+        } catch (uploadError) {
+          failures.push(
+            `${file.name}: ${
+              uploadError instanceof Error ? uploadError.message : "Upload failed."
+            }`
+          );
+        }
+      }
+
+      setProgress(null);
+      if (failures.length > 0) {
+        setError(
+          `${failures.length} upload${failures.length === 1 ? "" : "s"} need attention: ${failures.join(" | ")}`
+        );
+      }
+      if (uploadedCount > 0) {
+        setPanel({ type: "empty" });
+        refresh(`${uploadedCount} draft lesson${uploadedCount === 1 ? "" : "s"} created. Mux is processing the video${uploadedCount === 1 ? "" : "s"}.`);
+      } else {
+        setMessage(null);
+      }
+    });
+  }
+
   async function uploadForExistingLesson(lessonId: number, file: File) {
     setMessage("Creating Mux upload...");
     setProgress(0);
@@ -753,11 +933,13 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
       ? "New module"
       : panel.type === "create-lesson"
         ? "New lesson"
-        : panel.type === "edit-module"
-          ? "Edit module"
-          : panel.type === "edit-lesson"
-            ? "Edit lesson"
-            : "Select an item";
+        : panel.type === "bulk-upload"
+          ? "Bulk video upload"
+          : panel.type === "edit-module"
+            ? "Edit module"
+            : panel.type === "edit-lesson"
+              ? "Edit lesson"
+              : "Select an item";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -789,6 +971,16 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
             >
               <Icon name="plus" /> Lesson
             </button>
+            <button
+              type="button"
+              className="cb-btn cb-btn-secondary text-sm"
+              disabled={modules.length === 0}
+              onClick={() => {
+                resetPanel({ type: "bulk-upload" });
+              }}
+            >
+              <Icon name="upload" /> Bulk
+            </button>
           </div>
         </div>
 
@@ -799,11 +991,37 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
             </div>
           ) : (
             visibleBlocks.map(({ module, lessons: moduleLessons }) => (
-              <div key={module.id} className="p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                key={module.id}
+                className="p-4"
+                onDragOver={(event) => {
+                  if (dragState?.type === "module") event.preventDefault();
+                }}
+                onDrop={() => {
+                  if (dragState?.type === "module") {
+                    reorderModules(dragState.moduleId, module.id);
+                    setDragState(null);
+                  }
+                }}
+                onDragEnd={() => setDragState(null)}
+              >
+                <div className="grid gap-3 sm:grid-cols-[36px_minmax(0,1fr)_auto] sm:items-center">
                   <button
                     type="button"
-                    className="grid min-w-0 gap-3 text-left sm:grid-cols-[104px_minmax(0,1fr)] sm:items-center"
+                    draggable
+                    className={iconButtonClass()}
+                    aria-label={`Reorder ${module.title}`}
+                    title="Drag to reorder"
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "move";
+                      setDragState({ type: "module", moduleId: module.id });
+                    }}
+                  >
+                    <Icon name="grip" />
+                  </button>
+                  <button
+                    type="button"
+                    className="grid w-full min-w-0 gap-3 text-left sm:grid-cols-[104px_minmax(0,1fr)] sm:items-center"
                     onClick={() => {
                       resetPanel({ type: "edit-module", module });
                     }}
@@ -829,7 +1047,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                       ) : null}
                     </div>
                   </button>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2 sm:justify-end">
                     <button
                       type="button"
                       className={iconButtonClass()}
@@ -840,6 +1058,17 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                       }}
                     >
                       <Icon name="plus" />
+                    </button>
+                    <button
+                      type="button"
+                      className={iconButtonClass()}
+                      aria-label={`Bulk upload lessons to ${module.title}`}
+                      title="Bulk upload"
+                      onClick={() => {
+                        resetPanel({ type: "bulk-upload", moduleId: module.id });
+                      }}
+                    >
+                      <Icon name="upload" />
                     </button>
                     <button
                       type="button"
@@ -871,7 +1100,7 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                   </div>
                 </div>
 
-                <div className="mt-3 overflow-hidden rounded-xl border border-[var(--border)]">
+                <div className="mt-3 overflow-hidden rounded-xl border border-[var(--border)] sm:ml-12">
                   {moduleLessons.length === 0 ? (
                     <div className="bg-[color-mix(in_oklab,var(--background)_88%,var(--card)_12%)] px-4 py-3">
                       <p className="cb-caption">No lessons in this module yet.</p>
@@ -879,10 +1108,48 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                   ) : (
                     <div className="divide-y divide-[var(--border)]">
                       {moduleLessons.map((lesson) => (
-                        <div key={lesson.id} className="grid gap-3 bg-[color-mix(in_oklab,var(--background)_88%,var(--card)_12%)] px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                        <div
+                          key={lesson.id}
+                          className="grid gap-3 bg-[color-mix(in_oklab,var(--background)_88%,var(--card)_12%)] px-4 py-3 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center"
+                          onDragOver={(event) => {
+                            if (
+                              dragState?.type === "lesson" &&
+                              dragState.moduleId === module.id
+                            ) {
+                              event.preventDefault();
+                            }
+                          }}
+                          onDrop={() => {
+                            if (
+                              dragState?.type === "lesson" &&
+                              dragState.moduleId === module.id
+                            ) {
+                              reorderLessons(module.id, dragState.lessonId, lesson.id);
+                              setDragState(null);
+                            }
+                          }}
+                          onDragEnd={() => setDragState(null)}
+                        >
                           <button
                             type="button"
-                            className="grid min-w-0 gap-3 text-left sm:grid-cols-[76px_minmax(0,1fr)] sm:items-center"
+                            draggable
+                            className={iconButtonClass()}
+                            aria-label={`Reorder ${lesson.title}`}
+                            title="Drag to reorder"
+                            onDragStart={(event) => {
+                              event.dataTransfer.effectAllowed = "move";
+                              setDragState({
+                                type: "lesson",
+                                moduleId: module.id,
+                                lessonId: lesson.id,
+                              });
+                            }}
+                          >
+                            <Icon name="grip" />
+                          </button>
+                          <button
+                            type="button"
+                            className="grid w-full min-w-0 gap-3 text-left sm:grid-cols-[76px_minmax(0,1fr)] sm:items-center"
                             onClick={() => {
                               resetPanel({ type: "edit-lesson", lesson });
                             }}
@@ -992,22 +1259,27 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
               Select a module or lesson from the overview, or create a new item with the actions above.
             </p>
           ) : panel.type === "create-module" ? (
-            <form action={(formData) => runModuleSave(formData)} className="space-y-4">
-              <ModuleFields onThumbnailFileChange={setThumbnailFile} />
+            <form onSubmit={(event) => submitForm(event, runModuleSave)} className="space-y-4">
+              <ModuleFields defaultOrderIndex={nextModuleOrder} onThumbnailFileChange={setThumbnailFile} />
               <button type="submit" disabled={pending} className="cb-btn cb-btn-primary w-full justify-center text-sm">
                 {pending ? "Saving..." : "Create module"}
               </button>
             </form>
           ) : panel.type === "edit-module" && selectedModule ? (
-            <form action={(formData) => runModuleSave(formData, selectedModule)} className="space-y-4">
+            <form onSubmit={(event) => submitForm(event, (formData) => runModuleSave(formData, selectedModule))} className="space-y-4">
               <ModuleFields module={selectedModule} onThumbnailFileChange={setThumbnailFile} />
               <button type="submit" disabled={pending} className="cb-btn cb-btn-primary w-full justify-center text-sm">
                 {pending ? "Saving..." : "Save module"}
               </button>
             </form>
           ) : panel.type === "create-lesson" ? (
-            <form action={(formData) => runLessonSave(formData)} className="space-y-4">
-              <LessonFields modules={modules} defaultModuleId={panel.moduleId} onThumbnailFileChange={setThumbnailFile} />
+            <form onSubmit={(event) => submitForm(event, runLessonSave)} className="space-y-4">
+              <LessonFields
+                modules={modules}
+                defaultModuleId={panel.moduleId}
+                defaultOrderIndex={getNextLessonOrder(panel.moduleId)}
+                onThumbnailFileChange={setThumbnailFile}
+              />
               <label className="space-y-1.5">
                 <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Video file</span>
                 <input ref={fileInputRef} type="file" accept="video/*" disabled={pending || progress !== null} className="block w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--foreground)] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[var(--background)]" />
@@ -1017,8 +1289,30 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                 {pending || progress !== null ? "Working..." : "Create lesson"}
               </button>
             </form>
+          ) : panel.type === "bulk-upload" ? (
+            <form onSubmit={(event) => submitForm(event, runBulkUpload)} className="space-y-4">
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Module</span>
+                <select name="module_id" defaultValue={panel.moduleId ?? ""} required className={fieldClass()}>
+                  <option value="">Choose module</option>
+                  {modules.map((module) => (
+                    <option key={module.id} value={module.id}>
+                      {module.order_index}. {module.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Video files</span>
+                <input ref={bulkFileInputRef} type="file" accept="video/*" multiple disabled={pending || progress !== null} className="block w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--foreground)] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[var(--background)]" />
+              </label>
+              <UploadProgress progress={progress} />
+              <button type="submit" disabled={pending || progress !== null} className="cb-btn cb-btn-primary w-full justify-center text-sm">
+                {pending || progress !== null ? "Uploading..." : "Upload draft lessons"}
+              </button>
+            </form>
           ) : panel.type === "edit-lesson" && selectedLesson ? (
-            <form action={(formData) => runLessonSave(formData, selectedLesson)} className="space-y-4">
+            <form onSubmit={(event) => submitForm(event, (formData) => runLessonSave(formData, selectedLesson))} className="space-y-4">
               <LessonFields lesson={selectedLesson} modules={modules} onThumbnailFileChange={setThumbnailFile} />
               <div className="rounded-xl border border-[var(--border)] p-3">
                 <div className="flex items-center justify-between gap-3">
