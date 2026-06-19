@@ -2,10 +2,12 @@ import type { AdminModuleProgressBlock } from "@/lib/admin/types";
 import { adminUpdateStudentModuleAccess } from "@/app/actions/admin/module-access";
 
 export function StudentModuleAccessPanel({
+  accessLevel,
   modules,
   selectedModuleIds,
   studentId,
 }: {
+  accessLevel: number;
   modules: AdminModuleProgressBlock[];
   selectedModuleIds: number[];
   studentId: string;
@@ -21,8 +23,12 @@ export function StudentModuleAccessPanel({
             Module access
           </h2>
           <p className="cb-caption mt-2 max-w-prose">
-            No selection means standard academy access. Select one or more modules
-            to show only those modules to this student.
+            No selection follows the student&apos;s access level
+            {accessLevel >= 2
+              ? " (all modules). "
+              : " (standard academy progression). "}
+            Select one or more modules to override that and show only those
+            modules.
           </p>
         </div>
         <span className="cb-badge cb-badge-available">

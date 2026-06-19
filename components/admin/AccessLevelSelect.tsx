@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { adminUpdateStudentAccessLevel } from "@/app/actions/admin/students";
 import {
+  ALL_MODULES_ACCESS_LEVEL,
   ALLOWED_ACCESS_LEVELS,
   ADMIN_ACCESS_LEVEL,
 } from "@/lib/admin/constants";
@@ -77,7 +78,11 @@ export function AccessLevelSelect({
             }
           >
             Level {lvl}
-            {lvl === ADMIN_ACCESS_LEVEL ? " — Admin" : ""}
+            {lvl === ADMIN_ACCESS_LEVEL
+              ? " — Admin"
+              : lvl === ALL_MODULES_ACCESS_LEVEL
+                ? " — Alle modules"
+                : " — Standaard traject"}
           </option>
         ))}
       </select>

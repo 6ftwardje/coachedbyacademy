@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Student } from "@/lib/types";
+import { ALL_MODULES_ACCESS_LEVEL } from "@/lib/admin/constants";
 
 const STUDENT_SELECT =
   "id, email, name, auth_user_id, access_level, created_at, updated_at, last_seen, phone";
@@ -37,7 +38,7 @@ export const getCurrentStudent = cache(async function getCurrentStudent(): Promi
 
 /**
  * Returns the current student, creating one if missing (bootstrap).
- * Uses auth user id, email, and name. Database default is used for access_level.
+ * New students start with access to all academy modules.
  */
 export const ensureCurrentStudent = cache(async function ensureCurrentStudent(): Promise<{
   student: Student | null;
@@ -62,6 +63,7 @@ export const ensureCurrentStudent = cache(async function ensureCurrentStudent():
       auth_user_id: user.id,
       email: user.email,
       name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
+      access_level: ALL_MODULES_ACCESS_LEVEL,
     })
     .select()
     .single();

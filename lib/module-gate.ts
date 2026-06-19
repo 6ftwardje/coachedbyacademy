@@ -2,11 +2,13 @@ import type { Module } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { getPublishedModules } from "@/lib/modules";
 import { isMissingSupabaseTableError } from "@/lib/supabase/errors";
+import { ALL_MODULES_ACCESS_LEVEL } from "@/lib/admin/constants";
 
 const STUDENT_MODULE_ACCESS_TABLE = "student_module_access";
 
 export type StudentModuleAccessScope = {
   hasExplicitAccess: boolean;
+  hasAllModulesAccess: boolean;
   moduleIds: Set<number>;
 };
 
@@ -14,22 +16,49 @@ export async function getStudentModuleAccessScope(
   studentId: string
 ): Promise<StudentModuleAccessScope> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("student_module_access")
-    .select("module_id")
-    .eq("student_id", studentId);
+  const [
+    { data: moduleAccessData, error: moduleAccessError },
+    { data: studentData, error: studentError },
+  ] = await Promise.all([
+    supabase
+      .from("student_module_access")
+      .select("module_id")
+      .eq("student_id", studentId),
+    supabase
+      .from("students")
+      .select("access_level")
+      .eq("id", studentId)
+      .maybeSingle(),
+  ]);
 
-  if (error) {
-    if (!isMissingSupabaseTableError(error, STUDENT_MODULE_ACCESS_TABLE)) {
-      console.error("getStudentModuleAccessScope", error.message);
+  if (moduleAccessError) {
+    if (
+      !isMissingSupabaseTableError(
+        moduleAccessError,
+        STUDENT_MODULE_ACCESS_TABLE
+      )
+    ) {
+      console.error(
+        "getStudentModuleAccessScope.moduleAccess",
+        moduleAccessError.message
+      );
     }
-
-    return { hasExplicitAccess: false, moduleIds: new Set() };
   }
 
-  const moduleIds = new Set((data ?? []).map((row) => Number(row.module_id)));
+  if (studentError) {
+    console.error(
+      "getStudentModuleAccessScope.student",
+      studentError.message
+    );
+  }
+
+  const moduleIds = new Set(
+    (moduleAccessData ?? []).map((row) => Number(row.module_id))
+  );
   return {
     hasExplicitAccess: moduleIds.size > 0,
+    hasAllModulesAccess:
+      Number(studentData?.access_level ?? 1) >= ALL_MODULES_ACCESS_LEVEL,
     moduleIds,
   };
 }
@@ -62,6 +91,13 @@ export async function getModuleAccessMap(
   if (accessScope.hasExplicitAccess) {
     for (const mod of ordered) {
       map.set(mod.id, accessScope.moduleIds.has(mod.id));
+    }
+    return map;
+  }
+
+  if (accessScope.hasAllModulesAccess) {
+    for (const mod of ordered) {
+      map.set(mod.id, true);
     }
     return map;
   }

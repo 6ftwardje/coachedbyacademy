@@ -130,6 +130,7 @@ export default async function AdminStudentDetailPage({
             </section>
 
             <StudentModuleAccessPanel
+              accessLevel={student.access_level}
               modules={modules}
               selectedModuleIds={explicitModuleAccessIds}
               studentId={student.id}
