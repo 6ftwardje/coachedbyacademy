@@ -13,9 +13,12 @@ import {
   getNextModuleOrderAdmin,
   getLessonForVideoAdmin,
   getUniqueSlugAdmin,
+  moveLessonToModuleAdmin,
+  placeLessonAtOrderAdmin,
   reorderLessonsAdmin,
   reorderModulesAdmin,
   updateLessonContentAdmin,
+  updateLessonDetailsAdmin,
   updateLessonVideoAdmin,
   updateModuleAdmin,
 } from "@/lib/admin/videos";
@@ -520,12 +523,39 @@ export async function adminUpdateLesson(
   const slug = await prepareUpdateSlug("lessons", parsed.input.slug, lessonId);
   if ("error" in slug) return { success: false, error: slug.error };
 
-  const { error } = await updateLessonContentAdmin(lessonId, {
-    ...parsed.input,
-    slug: slug.slug,
-    order_index: parsed.input.order_index,
-  });
-  if (error) return { success: false, error };
+  const currentLesson = await getLessonForVideoAdmin(lessonId);
+  if (!currentLesson) return { success: false, error: "Lesson not found." };
+
+  const placementChanged =
+    currentLesson.module_id !== parsed.input.module_id ||
+    currentLesson.order_index !== parsed.input.order_index;
+
+  if (placementChanged) {
+    const details = await updateLessonDetailsAdmin(lessonId, {
+      title: parsed.input.title,
+      slug: slug.slug,
+      description: parsed.input.description,
+      takeaway: parsed.input.takeaway,
+      action_items: parsed.input.action_items,
+      thumbnail_url: parsed.input.thumbnail_url,
+      is_published: parsed.input.is_published,
+    });
+    if (details.error) return { success: false, error: details.error };
+
+    const placed = await placeLessonAtOrderAdmin({
+      lessonId,
+      targetModuleId: parsed.input.module_id,
+      orderIndex: parsed.input.order_index,
+    });
+    if (placed.error) return { success: false, error: placed.error };
+  } else {
+    const { error } = await updateLessonContentAdmin(lessonId, {
+      ...parsed.input,
+      slug: slug.slug,
+      order_index: parsed.input.order_index,
+    });
+    if (error) return { success: false, error };
+  }
 
   logAdminAction("content.lesson_updated", {
     actorStudentId: actorStudent.id,
@@ -533,6 +563,50 @@ export async function adminUpdateLesson(
   });
 
   revalidateVideoPaths(slug.slug);
+  return { success: true };
+}
+
+export async function adminMoveLessonToModule(
+  lessonIdRaw: unknown,
+  targetModuleIdRaw: unknown,
+  insertBeforeLessonIdRaw?: unknown
+): Promise<ActionResult> {
+  const { actorStudent } = await requireAdmin();
+  const lessonId = parseLessonId(lessonIdRaw);
+  const targetModuleId = parsePositiveInteger(targetModuleIdRaw);
+  const insertBeforeLessonId =
+    insertBeforeLessonIdRaw === null || insertBeforeLessonIdRaw === undefined
+      ? null
+      : parseLessonId(insertBeforeLessonIdRaw);
+
+  if (!lessonId || !targetModuleId) {
+    return { success: false, error: "Invalid lesson move." };
+  }
+  if (insertBeforeLessonIdRaw && !insertBeforeLessonId) {
+    return { success: false, error: "Invalid target lesson." };
+  }
+
+  const lesson = await getLessonForVideoAdmin(lessonId);
+  if (!lesson) return { success: false, error: "Lesson not found." };
+
+  const { error } = await moveLessonToModuleAdmin({
+    lessonId,
+    targetModuleId,
+    insertBeforeLessonId,
+  });
+  if (error) return { success: false, error };
+
+  logAdminAction("content.lesson_moved", {
+    actorStudentId: actorStudent.id,
+    metadata: {
+      lessonId,
+      fromModuleId: lesson.module_id,
+      toModuleId: targetModuleId,
+      insertBeforeLessonId,
+    },
+  });
+
+  revalidateVideoPaths(lesson.slug);
   return { success: true };
 }
 

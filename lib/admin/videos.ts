@@ -23,6 +23,11 @@ type LessonUpdate = Partial<
   >
 >;
 
+type LessonPlacement = {
+  module_id: number;
+  order_index: number;
+};
+
 export type AdminModuleVideoBlock = {
   module: Module;
   lessons: AdminLessonVideoRow[];
@@ -49,6 +54,11 @@ export type LessonContentInput = {
   order_index: number;
   is_published: boolean;
 };
+
+type LessonContentDetailsInput = Omit<
+  LessonContentInput,
+  "module_id" | "order_index"
+>;
 
 type ContentTable = "modules" | "lessons";
 
@@ -164,6 +174,24 @@ async function updateLessonOrderValue({
   return error ? friendlyDbError(error.message) : null;
 }
 
+async function updateLessonPlacementValue({
+  lessonId,
+  moduleId,
+  orderIndex,
+}: {
+  lessonId: number;
+  moduleId: number;
+  orderIndex: number;
+}): Promise<string | null> {
+  const db = await createClient();
+  const { error } = await db
+    .from("lessons")
+    .update({ module_id: moduleId, order_index: orderIndex })
+    .eq("id", lessonId);
+
+  return error ? friendlyDbError(error.message) : null;
+}
+
 async function rollbackModuleOrder(
   moduleIds: number[],
   previousOrder: Map<number, number>
@@ -199,6 +227,184 @@ async function rollbackLessonOrder({
       orderIndex: previousOrder.get(lessonId) ?? 1,
     });
   }
+}
+
+async function rollbackLessonPlacement(
+  previousPlacement: Map<number, LessonPlacement>
+): Promise<void> {
+  const lessonIds = Array.from(previousPlacement.keys());
+
+  for (const [index, lessonId] of lessonIds.entries()) {
+    const placement = previousPlacement.get(lessonId);
+    if (!placement) continue;
+    await updateLessonPlacementValue({
+      lessonId,
+      moduleId: placement.module_id,
+      orderIndex: -3_000_000 - index,
+    });
+  }
+
+  for (const lessonId of lessonIds) {
+    const placement = previousPlacement.get(lessonId);
+    if (!placement) continue;
+    await updateLessonPlacementValue({
+      lessonId,
+      moduleId: placement.module_id,
+      orderIndex: placement.order_index,
+    });
+  }
+}
+
+async function fetchLessonOrderRows(moduleIds: number[]) {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("lessons")
+    .select("id, module_id, order_index")
+    .in("module_id", moduleIds)
+    .order("order_index", { ascending: true });
+
+  return { data: data ?? [], error };
+}
+
+function insertBeforeId(
+  ids: number[],
+  lessonId: number,
+  insertBeforeLessonId?: number | null
+): number[] {
+  const withoutLesson = ids.filter((id) => id !== lessonId);
+  if (!insertBeforeLessonId || insertBeforeLessonId === lessonId) {
+    return [...withoutLesson, lessonId];
+  }
+
+  const targetIndex = withoutLesson.indexOf(insertBeforeLessonId);
+  if (targetIndex < 0) {
+    return [...withoutLesson, lessonId];
+  }
+
+  const next = [...withoutLesson];
+  next.splice(targetIndex, 0, lessonId);
+  return next;
+}
+
+function insertAtPosition(
+  ids: number[],
+  lessonId: number,
+  orderIndex: number
+): number[] {
+  const withoutLesson = ids.filter((id) => id !== lessonId);
+  const insertionIndex = Math.min(
+    Math.max(orderIndex - 1, 0),
+    withoutLesson.length
+  );
+  const next = [...withoutLesson];
+  next.splice(insertionIndex, 0, lessonId);
+  return next;
+}
+
+async function saveLessonPlacement({
+  lessonId,
+  sourceModuleId,
+  targetModuleId,
+  sourceOrderedIds,
+  targetOrderedIds,
+  previousPlacement,
+}: {
+  lessonId: number;
+  sourceModuleId: number;
+  targetModuleId: number;
+  sourceOrderedIds: number[];
+  targetOrderedIds: number[];
+  previousPlacement: Map<number, LessonPlacement>;
+}): Promise<{ error: string | null }> {
+  if (sourceModuleId === targetModuleId) {
+    for (const [index, id] of targetOrderedIds.entries()) {
+      const tempError = await updateLessonPlacementValue({
+        lessonId: id,
+        moduleId: targetModuleId,
+        orderIndex: -1_000_000 - index,
+      });
+      if (tempError) {
+        await rollbackLessonPlacement(previousPlacement);
+        return { error: tempError };
+      }
+    }
+
+    for (const [index, id] of targetOrderedIds.entries()) {
+      const finalError = await updateLessonPlacementValue({
+        lessonId: id,
+        moduleId: targetModuleId,
+        orderIndex: index + 1,
+      });
+      if (finalError) {
+        await rollbackLessonPlacement(previousPlacement);
+        return { error: finalError };
+      }
+    }
+
+    return { error: null };
+  }
+
+  const targetExistingIds = targetOrderedIds.filter((id) => id !== lessonId);
+
+  for (const [index, id] of sourceOrderedIds.entries()) {
+    const tempError = await updateLessonPlacementValue({
+      lessonId: id,
+      moduleId: sourceModuleId,
+      orderIndex: -1_000_000 - index,
+    });
+    if (tempError) {
+      await rollbackLessonPlacement(previousPlacement);
+      return { error: tempError };
+    }
+  }
+
+  for (const [index, id] of targetExistingIds.entries()) {
+    const tempError = await updateLessonPlacementValue({
+      lessonId: id,
+      moduleId: targetModuleId,
+      orderIndex: -2_000_000 - index,
+    });
+    if (tempError) {
+      await rollbackLessonPlacement(previousPlacement);
+      return { error: tempError };
+    }
+  }
+
+  const moveError = await updateLessonPlacementValue({
+    lessonId,
+    moduleId: targetModuleId,
+    orderIndex: -3_000_000,
+  });
+  if (moveError) {
+    await rollbackLessonPlacement(previousPlacement);
+    return { error: moveError };
+  }
+
+  for (const [index, id] of sourceOrderedIds.entries()) {
+    const finalError = await updateLessonPlacementValue({
+      lessonId: id,
+      moduleId: sourceModuleId,
+      orderIndex: index + 1,
+    });
+    if (finalError) {
+      await rollbackLessonPlacement(previousPlacement);
+      return { error: finalError };
+    }
+  }
+
+  for (const [index, id] of targetOrderedIds.entries()) {
+    const finalError = await updateLessonPlacementValue({
+      lessonId: id,
+      moduleId: targetModuleId,
+      orderIndex: index + 1,
+    });
+    if (finalError) {
+      await rollbackLessonPlacement(previousPlacement);
+      return { error: finalError };
+    }
+  }
+
+  return { error: null };
 }
 
 export async function reorderModulesAdmin(
@@ -319,6 +525,150 @@ export async function reorderLessonsAdmin(
   }
 
   return { error: null };
+}
+
+export async function moveLessonToModuleAdmin({
+  lessonId,
+  targetModuleId,
+  insertBeforeLessonId = null,
+}: {
+  lessonId: number;
+  targetModuleId: number;
+  insertBeforeLessonId?: number | null;
+}): Promise<{ error: string | null }> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return { error: null };
+  }
+
+  if (!lessonId || !targetModuleId || insertBeforeLessonId === lessonId) {
+    return { error: "Invalid lesson move." };
+  }
+
+  const lesson = await getLessonForVideoAdmin(lessonId);
+  if (!lesson) return { error: "Lesson not found." };
+
+  const sourceModuleId = lesson.module_id;
+  const moduleIds =
+    sourceModuleId === targetModuleId
+      ? [sourceModuleId]
+      : [sourceModuleId, targetModuleId];
+  const { data, error } = await fetchLessonOrderRows(moduleIds);
+  if (error) return { error: friendlyDbError(error.message) };
+
+  const sourceRows = data.filter(
+    (row) => Number(row.module_id) === sourceModuleId
+  );
+  const targetRows = data.filter(
+    (row) => Number(row.module_id) === targetModuleId
+  );
+  const sourceIds = sourceRows.map((row) => Number(row.id));
+  const targetIds = targetRows.map((row) => Number(row.id));
+
+  if (!sourceIds.includes(lessonId)) {
+    return { error: "Lesson order is stale. Refresh and try again." };
+  }
+  if (insertBeforeLessonId && !targetIds.includes(insertBeforeLessonId)) {
+    return { error: "Target lesson is stale. Refresh and try again." };
+  }
+
+  const previousPlacement = new Map(
+    data.map((row) => [
+      Number(row.id),
+      {
+        module_id: Number(row.module_id),
+        order_index: Number(row.order_index),
+      },
+    ])
+  );
+
+  const targetOrderedIds = insertBeforeId(
+    targetIds,
+    lessonId,
+    insertBeforeLessonId
+  );
+  const sourceOrderedIds = sourceIds.filter((id) => id !== lessonId);
+
+  return saveLessonPlacement({
+    lessonId,
+    sourceModuleId,
+    targetModuleId,
+    sourceOrderedIds:
+      sourceModuleId === targetModuleId
+        ? targetOrderedIds
+        : sourceOrderedIds,
+    targetOrderedIds,
+    previousPlacement,
+  });
+}
+
+export async function placeLessonAtOrderAdmin({
+  lessonId,
+  targetModuleId,
+  orderIndex,
+}: {
+  lessonId: number;
+  targetModuleId: number;
+  orderIndex: number;
+}): Promise<{ error: string | null }> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return { error: null };
+  }
+
+  if (!lessonId || !targetModuleId || !orderIndex) {
+    return { error: "Invalid lesson order." };
+  }
+
+  const lesson = await getLessonForVideoAdmin(lessonId);
+  if (!lesson) return { error: "Lesson not found." };
+
+  const sourceModuleId = lesson.module_id;
+  const moduleIds =
+    sourceModuleId === targetModuleId
+      ? [sourceModuleId]
+      : [sourceModuleId, targetModuleId];
+  const { data, error } = await fetchLessonOrderRows(moduleIds);
+  if (error) return { error: friendlyDbError(error.message) };
+
+  const sourceRows = data.filter(
+    (row) => Number(row.module_id) === sourceModuleId
+  );
+  const targetRows = data.filter(
+    (row) => Number(row.module_id) === targetModuleId
+  );
+  const sourceIds = sourceRows.map((row) => Number(row.id));
+  const targetIds = targetRows.map((row) => Number(row.id));
+
+  if (!sourceIds.includes(lessonId)) {
+    return { error: "Lesson order is stale. Refresh and try again." };
+  }
+
+  const previousPlacement = new Map(
+    data.map((row) => [
+      Number(row.id),
+      {
+        module_id: Number(row.module_id),
+        order_index: Number(row.order_index),
+      },
+    ])
+  );
+  const targetOrderedIds = insertAtPosition(targetIds, lessonId, orderIndex);
+  const sourceOrderedIds = sourceIds.filter((id) => id !== lessonId);
+
+  return saveLessonPlacement({
+    lessonId,
+    sourceModuleId,
+    targetModuleId,
+    sourceOrderedIds:
+      sourceModuleId === targetModuleId
+        ? targetOrderedIds
+        : sourceOrderedIds,
+    targetOrderedIds,
+    previousPlacement,
+  });
 }
 
 export async function listLessonsForVideoAdmin(): Promise<AdminLessonVideoRow[]> {
@@ -512,6 +862,34 @@ export async function createLessonAdmin(
 export async function updateLessonContentAdmin(
   lessonId: number,
   input: LessonContentInput
+): Promise<{ error: string | null }> {
+  await requireAdmin();
+
+  if (process.env.NODE_ENV === "test") {
+    return { error: null };
+  }
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("lessons")
+    .update(input)
+    .eq("id", lessonId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data) {
+    return {
+      error:
+        "No lesson was updated. Check that the admin content migration has been applied.",
+    };
+  }
+  return { error: null };
+}
+
+export async function updateLessonDetailsAdmin(
+  lessonId: number,
+  input: LessonContentDetailsInput
 ): Promise<{ error: string | null }> {
   await requireAdmin();
 

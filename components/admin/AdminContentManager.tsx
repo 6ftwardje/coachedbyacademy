@@ -12,6 +12,7 @@ import {
   adminCreateThumbnailUpload,
   adminDeleteLesson,
   adminDeleteModule,
+  adminMoveLessonToModule,
   adminReorderLessons,
   adminReorderModules,
   adminSyncMuxUpload,
@@ -596,6 +597,26 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
     });
   }
 
+  function moveLessonToModule(
+    lessonId: number,
+    targetModuleId: number,
+    insertBeforeLessonId?: number | null
+  ) {
+    resetFeedback();
+    startTransition(async () => {
+      const result = await adminMoveLessonToModule(
+        lessonId,
+        targetModuleId,
+        insertBeforeLessonId ?? null
+      );
+      if (!result.success) {
+        setError(result.error ?? "Could not move lesson.");
+        return;
+      }
+      refresh("Lesson moved.");
+    });
+  }
+
   async function uploadThumbnailForEntity({
     target,
     entityId,
@@ -995,11 +1016,25 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                 key={module.id}
                 className="p-4"
                 onDragOver={(event) => {
-                  if (dragState?.type === "module") event.preventDefault();
+                  if (dragState?.type === "module" || dragState?.type === "lesson") {
+                    event.preventDefault();
+                  }
                 }}
-                onDrop={() => {
+                onDrop={(event) => {
+                  event.preventDefault();
                   if (dragState?.type === "module") {
                     reorderModules(dragState.moduleId, module.id);
+                    setDragState(null);
+                    return;
+                  }
+                  if (dragState?.type === "lesson") {
+                    const isSameModule = dragState.moduleId === module.id;
+                    const currentLastLesson = moduleLessons.at(-1);
+                    if (isSameModule && currentLastLesson?.id === dragState.lessonId) {
+                      setDragState(null);
+                      return;
+                    }
+                    moveLessonToModule(dragState.lessonId, module.id);
                     setDragState(null);
                   }
                 }}
@@ -1113,20 +1148,26 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                           className="grid gap-3 bg-[color-mix(in_oklab,var(--background)_88%,var(--card)_12%)] px-4 py-3 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center"
                           onDragOver={(event) => {
                             if (
-                              dragState?.type === "lesson" &&
-                              dragState.moduleId === module.id
+                              dragState?.type === "lesson"
                             ) {
                               event.preventDefault();
                             }
                           }}
-                          onDrop={() => {
-                            if (
-                              dragState?.type === "lesson" &&
-                              dragState.moduleId === module.id
-                            ) {
-                              reorderLessons(module.id, dragState.lessonId, lesson.id);
-                              setDragState(null);
+                          onDrop={(event) => {
+                            if (dragState?.type === "lesson") {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              if (dragState.moduleId === module.id) {
+                                reorderLessons(module.id, dragState.lessonId, lesson.id);
+                              } else {
+                                moveLessonToModule(
+                                  dragState.lessonId,
+                                  module.id,
+                                  lesson.id
+                                );
+                              }
                             }
+                            setDragState(null);
                           }}
                           onDragEnd={() => setDragState(null)}
                         >
@@ -1134,8 +1175,8 @@ export function AdminContentManager({ blocks }: { blocks: AdminModuleVideoBlock[
                             type="button"
                             draggable
                             className={iconButtonClass()}
-                            aria-label={`Reorder ${lesson.title}`}
-                            title="Drag to reorder"
+                            aria-label={`Move ${lesson.title}`}
+                            title="Drag to reorder or move to another module"
                             onDragStart={(event) => {
                               event.dataTransfer.effectAllowed = "move";
                               setDragState({
