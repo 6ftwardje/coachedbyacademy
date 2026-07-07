@@ -48,17 +48,41 @@ Voor lokaal ontwikkelen:
 
 | Instelling | Waarde |
 | --- | --- |
-| **Site URL** | `http://localhost:3000` |
-| **Redirect URLs** | `http://localhost:3000/auth/callback**` |
+| **Site URL** | je actieve devserver, bv. `http://localhost:3002` |
+| **Redirect URLs** | `http://localhost:3000/auth/callback**`, `http://localhost:3000/auth/confirm**`, `http://localhost:3001/auth/callback**`, `http://localhost:3001/auth/confirm**`, `http://localhost:3002/auth/callback**`, `http://localhost:3002/auth/confirm**` |
 
 Voeg bij een productieomgeving ook toe:
 
 ```text
 https://jouw-domein.nl/auth/callback**
+https://jouw-domein.nl/auth/confirm**
 ```
 
 Zet de **Site URL** in productie op je echte domein. De callback verwerkt zowel
-de bevestigingsmail na registratie als de link voor wachtwoordherstel.
+de bevestigingsmail na registratie als de link voor wachtwoordherstel. De
+`/auth/confirm` route verwerkt uitnodigingen via `token_hash`, zodat invite-links
+ook goed werken met server-side rendering.
+
+## 3b. Invite mailtemplate instellen
+
+1. Ga naar **Authentication** -> **Email Templates**.
+2. Open **Invite user**.
+3. Zet het onderwerp op:
+
+```text
+Je toegang tot CoachedBy Academy
+```
+
+4. Plak de HTML uit:
+
+```text
+docs/supabase-invite-email-template.html
+```
+
+De template gebruikt `{{ .RedirectTo }}`, `{{ .TokenHash }}` en `type=invite`.
+Daarom moet de app bij het versturen van invites een redirect naar
+`/auth/confirm?next=/account/update-password` meegeven, en die URL moet in de
+Redirect URLs allowlist staan.
 
 ## 4. Database-migraties toepassen
 

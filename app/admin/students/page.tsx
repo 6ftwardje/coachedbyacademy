@@ -62,6 +62,11 @@ export default async function AdminStudentsPage({
         eyebrow="Directory"
         title="Students"
         description="Search by name or email, sort the list, and open a profile for full progress control."
+        actions={
+          <Link href="/admin/students/new" className="cb-btn cb-btn-primary text-sm">
+            Add student
+          </Link>
+        }
       />
 
       <form

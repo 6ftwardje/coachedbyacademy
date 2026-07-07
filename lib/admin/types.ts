@@ -41,3 +41,10 @@ export type AdminStudentDetail = {
   modules: AdminModuleProgressBlock[];
   explicitModuleAccessIds: number[];
 };
+
+export type AdminStudentInviteModuleOption = Pick<
+  Module,
+  "id" | "title" | "order_index"
+> & {
+  totalLessons: number;
+};

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ACADEMY_LOGO_SRC } from "@/lib/brand";
@@ -38,6 +38,23 @@ function getCallbackUrl(next: string) {
   return callbackUrl.toString();
 }
 
+function getHashSessionTokens() {
+  if (typeof window === "undefined" || !window.location.hash) {
+    return null;
+  }
+
+  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+  const accessToken = hashParams.get("access_token");
+  const refreshToken = hashParams.get("refresh_token");
+  if (!accessToken || !refreshToken) return null;
+
+  return {
+    accessToken,
+    refreshToken,
+    type: hashParams.get("type"),
+  };
+}
+
 function AuthForm() {
   const searchParams = useSearchParams();
   const redirectedFrom = getSafeRedirect(searchParams.get("redirectedFrom"));
@@ -50,6 +67,44 @@ function AuthForm() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [status, setStatus] = useState<FormStatus>("idle");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const hashSession = getHashSessionTokens();
+    if (!hashSession) return;
+    const sessionTokens = hashSession;
+
+    let cancelled = false;
+    setStatus("loading");
+    setMessage("Je uitnodiging wordt verwerkt...");
+
+    async function completeHashSession() {
+      const supabase = createClient();
+      const { error } = await supabase.auth.setSession({
+        access_token: sessionTokens.accessToken,
+        refresh_token: sessionTokens.refreshToken,
+      });
+
+      if (cancelled) return;
+
+      if (error) {
+        window.history.replaceState(null, "", window.location.pathname);
+        setStatus("error");
+        setMessage("De uitnodigingslink is ongeldig of verlopen. Vraag een nieuwe uitnodiging aan.");
+        return;
+      }
+
+      window.history.replaceState(null, "", window.location.pathname);
+      window.location.assign(
+        sessionTokens.type === "invite" ? "/account/update-password" : "/dashboard"
+      );
+    }
+
+    completeHashSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function selectMode(nextMode: AuthMode) {
     setMode(nextMode);
