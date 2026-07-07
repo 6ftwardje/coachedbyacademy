@@ -56,10 +56,13 @@ function isTrackableInternalLink(anchor: HTMLAnchorElement) {
 
 function isTrackableFetch(input: RequestInfo | URL, init?: RequestInit) {
   const now = window.performance.now();
-  if (now > window.__cbUserInteractionUntil) return false;
+  if (now > (window.__cbUserInteractionUntil ?? 0)) return false;
 
   const request =
     typeof Request !== "undefined" && input instanceof Request ? input : null;
+  const signal = init?.signal ?? request?.signal;
+  if (signal?.aborted) return false;
+
   const headers = new Headers(request?.headers);
   if (init?.headers) {
     new Headers(init.headers).forEach((value, key) => {
@@ -67,7 +70,13 @@ function isTrackableFetch(input: RequestInfo | URL, init?: RequestInit) {
     });
   }
 
-  return headers.get("purpose")?.toLowerCase() !== "prefetch";
+  const purpose = headers.get("purpose")?.toLowerCase();
+  const secPurpose = headers.get("sec-purpose")?.toLowerCase();
+  if (purpose === "prefetch" || secPurpose?.includes("prefetch")) {
+    return false;
+  }
+
+  return !headers.has("next-router-prefetch");
 }
 
 declare global {
@@ -87,6 +96,7 @@ export function GlobalLoadingBar() {
   const finishTimerRef = useRef<number | null>(null);
   const idleTimerRef = useRef<number | null>(null);
   const maxTimerRef = useRef<number | null>(null);
+  const handoffTimersRef = useRef(new Set<number>());
   const routeStopsRef = useRef(new Set<() => void>());
   const lastLocationKeyRef = useRef("");
 
@@ -96,6 +106,8 @@ export function GlobalLoadingBar() {
 
   useEffect(() => {
     window.__cbUserInteractionUntil = 0;
+    const handoffTimers = handoffTimersRef.current;
+    const routeStops = routeStopsRef.current;
 
     function clearTimer(timer: TimerRef) {
       if (timer.current !== null) {
@@ -110,9 +122,23 @@ export function GlobalLoadingBar() {
     }
 
     function forceComplete() {
+      routeStops.forEach((stop) => stop());
+      routeStops.clear();
       activeCountRef.current = 0;
-      routeStopsRef.current.clear();
       finish();
+    }
+
+    function scheduleHandoff(
+      stop: () => void,
+      ms: number,
+      onComplete?: () => void
+    ) {
+      const timer = window.setTimeout(() => {
+        handoffTimers.delete(timer);
+        onComplete?.();
+        stop();
+      }, ms);
+      handoffTimers.add(timer);
     }
 
     function show() {
@@ -193,11 +219,10 @@ export function GlobalLoadingBar() {
       if (!anchor || !isTrackableInternalLink(anchor)) return;
 
       const stop = begin();
-      routeStopsRef.current.add(stop);
-      window.setTimeout(() => {
-        routeStopsRef.current.delete(stop);
-        stop();
-      }, NAVIGATION_HANDOFF_MS);
+      routeStops.add(stop);
+      scheduleHandoff(stop, NAVIGATION_HANDOFF_MS, () => {
+        routeStops.delete(stop);
+      });
     }
 
     function onSubmit(event: SubmitEvent) {
@@ -207,7 +232,7 @@ export function GlobalLoadingBar() {
       if (!form || (form.checkValidity && !form.checkValidity())) return;
 
       const stop = begin();
-      window.setTimeout(stop, FORM_HANDOFF_MS);
+      scheduleHandoff(stop, FORM_HANDOFF_MS);
     }
 
     function onPopState() {
@@ -215,11 +240,10 @@ export function GlobalLoadingBar() {
       if (nextKey === lastLocationKeyRef.current) return;
 
       const stop = begin();
-      routeStopsRef.current.add(stop);
-      window.setTimeout(() => {
-        routeStopsRef.current.delete(stop);
-        stop();
-      }, NAVIGATION_HANDOFF_MS);
+      routeStops.add(stop);
+      scheduleHandoff(stop, NAVIGATION_HANDOFF_MS, () => {
+        routeStops.delete(stop);
+      });
     }
 
     const originalFetch = window.fetch;
@@ -250,6 +274,10 @@ export function GlobalLoadingBar() {
       if (window.fetch === trackedFetch) {
         window.fetch = originalFetch;
       }
+      handoffTimers.forEach((timer) => window.clearTimeout(timer));
+      handoffTimers.clear();
+      routeStops.clear();
+      activeCountRef.current = 0;
       clearTimer(startTimerRef);
       clearTimer(finishTimerRef);
       clearTimer(idleTimerRef);

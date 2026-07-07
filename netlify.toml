@@ -1,3 +1,11 @@
+#
+# Netlify's Next.js adapter emits middleware into .netlify/edge-functions.
+# That generated server-side bundle can contain build-time environment values,
+# which trips Secrets Controller even though the values are not in repo source.
+# Keep scanning enabled everywhere else.
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/edge-functions/___netlify-edge-handler*/server/**/middleware.js"
+
 [[headers]]
   for = "/_next/static/*"
   [headers.values]

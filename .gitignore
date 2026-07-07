@@ -22,6 +22,9 @@ tsconfig.tsbuildinfo
 # Vercel
 .vercel
 
+# Netlify
+.netlify/
+
 # Testing
 coverage/
 

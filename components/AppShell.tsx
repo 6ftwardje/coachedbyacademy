@@ -121,6 +121,7 @@ function SidebarContent({
               active={isActive}
               icon={item.icon}
               onNavigate={onNavigate}
+              reloadDocument={item.href.startsWith("/admin")}
             />
           );
         })}

@@ -11,30 +11,30 @@ export function SidebarNavItem({
   active,
   icon,
   onNavigate,
+  reloadDocument = false,
 }: {
   href: string;
   label: string;
   active: boolean;
   icon: ReactNode;
   onNavigate?: () => void;
+  reloadDocument?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      className={[
-        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold tracking-tight transition-colors",
-        active
-          ? [
-              "bg-stone-900 text-white shadow-sm",
-              "dark:bg-white/10 dark:text-stone-50 dark:shadow-none dark:ring-1 dark:ring-white/10",
-            ].join(" ")
-          : [
-              "text-stone-600 hover:bg-stone-100 hover:text-stone-900",
-              "dark:text-stone-300 dark:hover:bg-white/5 dark:hover:text-stone-50",
-            ].join(" "),
-      ].join(" ")}
-    >
+  const className = [
+    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold tracking-tight transition-colors",
+    active
+      ? [
+          "bg-stone-900 text-white shadow-sm",
+          "dark:bg-white/10 dark:text-stone-50 dark:shadow-none dark:ring-1 dark:ring-white/10",
+        ].join(" ")
+      : [
+          "text-stone-600 hover:bg-stone-100 hover:text-stone-900",
+          "dark:text-stone-300 dark:hover:bg-white/5 dark:hover:text-stone-50",
+        ].join(" "),
+  ].join(" ");
+
+  const content = (
+    <>
       <span
         className={[
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
@@ -52,6 +52,24 @@ export function SidebarNavItem({
         {icon}
       </span>
       <span>{label}</span>
+    </>
+  );
+
+  if (reloadDocument) {
+    return (
+      <a href={href} onClick={onNavigate} className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={className}
+    >
+      {content}
     </Link>
   );
 }

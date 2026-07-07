@@ -121,13 +121,13 @@ function SidebarContent({
       </nav>
 
       <div className="mt-auto border-t border-[var(--border)] pt-5">
-        <Link
+        <a
           href="/dashboard"
           onClick={onNavigate}
           className="mb-2 block rounded-lg px-3 py-2 text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
         >
           ← Back to Academy
-        </Link>
+        </a>
         <form action="/auth/signout" method="post">
           <button
             type="submit"
