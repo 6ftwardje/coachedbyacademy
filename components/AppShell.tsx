@@ -184,7 +184,7 @@ export function AppShell({
   return (
     <div className="flex h-[100dvh] max-h-[100dvh] min-h-0 w-full overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
       {/* Desktop sidebar: vaste viewporthoogte; alleen main rechts scrollt */}
-      <aside className="relative hidden h-full min-h-0 w-[272px] shrink-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--background)] md:flex">
+      <aside className="relative hidden h-full min-h-0 w-[272px] shrink-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_96%,#000)] md:flex">
         <div className="flex h-full min-h-0 flex-col px-5 py-7">
           <SidebarContent
             showAdminNav={showAdminNav}
@@ -202,7 +202,7 @@ export function AppShell({
             className="fixed inset-0 z-40 bg-stone-900/35 backdrop-blur-[2px] md:hidden"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 z-50 flex h-[100dvh] max-h-[100dvh] w-[min(300px,88vw)] flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--background)] shadow-2xl md:hidden">
+          <aside className="fixed inset-y-0 left-0 z-50 flex h-[100dvh] max-h-[100dvh] w-[min(300px,88vw)] flex-col overflow-hidden border-r border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_96%,#000)] shadow-2xl md:hidden">
             <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3">
               <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
                 Menu

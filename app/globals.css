@@ -31,6 +31,33 @@ body {
   color: var(--foreground);
 }
 
+.cb-dashboard-hero-bleed {
+  width: 100vw;
+  margin-top: -2rem;
+  margin-right: calc(50% - 50vw);
+  margin-left: calc(50% - 50vw);
+}
+
+@media (min-width: 640px) {
+  .cb-dashboard-hero-bleed {
+    margin-top: -2.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .cb-dashboard-hero-bleed {
+    width: calc(100vw - 272px);
+    margin-right: calc(50% - ((100vw - 272px) / 2));
+    margin-left: calc(50% - ((100vw - 272px) / 2));
+  }
+}
+
+@media (min-width: 1024px) {
+  .cb-dashboard-hero-bleed {
+    margin-top: -3rem;
+  }
+}
+
 .cb-global-loading-bar {
   pointer-events: none;
   position: fixed;

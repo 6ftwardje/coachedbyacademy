@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { CourseThumbnail } from "@/components/CourseThumbnail";
+import { MuxBackgroundVideo } from "@/components/MuxBackgroundVideo";
 import { ModuleStateBadge } from "@/components/StatusBadge";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { ContentSection } from "@/components/layout/ContentSection";
-import { RightRailCard } from "@/components/layout/RightRailCard";
 import { asText } from "@/lib/as-text";
 import {
   getDashboardOverview,
   type DashboardModuleSummary,
 } from "@/lib/dashboard";
 import { ensureCurrentStudent } from "@/lib/students";
+
+const DASHBOARD_HERO_PLAYBACK_ID =
+  "E148xcK02Dv7Ov2g5waf4rXIobyhjorWNje025M48QzNM";
 
 function ModuleRow({ summary }: { summary: DashboardModuleSummary }) {
   const canOpen = summary.state !== "locked";
@@ -86,10 +89,6 @@ export default async function DashboardPage() {
         : nextStep.type === "completed"
           ? "Mooi werk. Je hebt alle beschikbare modules doorlopen."
           : "Open de module om verder te gaan met je traject.";
-  const thumbnail =
-    nextStep.type === "lesson"
-      ? nextStep.lesson.thumbnail_url ?? nextStep.module.thumbnail_url
-      : nextStep.module?.thumbnail_url;
   const moduleTitle = nextStep.module?.title ?? "Academy";
   const moduleOrder = nextStep.module?.order_index;
   const pct =
@@ -111,57 +110,32 @@ export default async function DashboardPage() {
         }
       : null;
 
-  const rail = actionSummary ? (
-    <RightRailCard title="Bij deze les">
-      <p className="text-sm font-semibold text-[var(--foreground)]">
-        {actionSummary.completed}/{actionSummary.total} opdrachten afgerond
-      </p>
-      {actionSummary.next ? (
-        <>
-          <p className="mt-3 cb-caption leading-relaxed">
-            Eerstvolgende actie:
-          </p>
-          <p className="mt-1 text-sm font-medium leading-relaxed text-[var(--foreground)]">
-            {actionSummary.next}
-          </p>
-        </>
-      ) : (
-        <p className="mt-3 cb-caption">
-          Alle opdrachten bij deze les zijn afgerond.
-        </p>
-      )}
-      <Link
-        href={nextStep.href}
-        className="mt-4 inline-flex text-sm font-semibold text-[var(--foreground)] underline-offset-4 hover:underline"
-      >
-        Bekijk de les
-      </Link>
-    </RightRailCard>
-  ) : null;
-
   return (
     <div>
-      <header className="mb-6 sm:mb-8">
-        <h1 className="cb-page-title">{title}</h1>
-      </header>
       <AppPageLayout
-        rail={rail}
         main={
           <>
-            <section className="group overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-[0_1px_0_rgba(28,25,23,0.04)]">
-              <div className="grid lg:grid-cols-[minmax(0,1.02fr)_minmax(300px,0.98fr)]">
-                <CourseThumbnail
-                  src={thumbnail}
-                  title={stepTitle}
-                  eyebrow={
-                    moduleOrder ? `Module ${moduleOrder}` : "Jouw traject"
-                  }
-                  className="aspect-[16/9] min-h-[220px] w-full lg:h-full lg:min-h-[360px]"
-                  imageClassName="group-hover:scale-[1.025]"
-                />
-                <div className="flex min-w-0 flex-col justify-between p-5 sm:p-7 lg:p-9">
-                  <div>
-                    <div className="cb-eyebrow">
+            <section className="cb-dashboard-hero-bleed relative isolate min-h-[520px] overflow-hidden bg-stone-950 text-white sm:min-h-[560px] lg:min-h-[600px]">
+              <div className="absolute inset-0 bg-stone-950" />
+              <div className="absolute inset-0 opacity-34">
+                <MuxBackgroundVideo playbackId={DASHBOARD_HERO_PLAYBACK_ID} />
+              </div>
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,10,9,0.96)_0%,rgba(12,10,9,0.7)_50%,rgba(12,10,9,0.9)_100%)]" />
+              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-stone-950 to-transparent" />
+
+              <div className="relative z-10 flex min-h-[inherit] flex-col justify-between p-5 sm:p-8 lg:p-10">
+                <div className="max-w-4xl">
+                  <p className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-white/56">
+                    Dashboard
+                  </p>
+                  <h1 className="mt-3 text-4xl font-extrabold leading-[1.02] text-white sm:text-5xl lg:text-6xl">
+                    {title}
+                  </h1>
+                </div>
+
+                <div className="mt-12 grid gap-8 border-t border-white/14 pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,420px)] lg:items-end">
+                  <div className="min-w-0">
+                    <div className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-white/56">
                       {nextStep.type === "lesson"
                         ? "Jouw huidige les"
                         : nextStep.type === "exam"
@@ -170,34 +144,52 @@ export default async function DashboardPage() {
                             ? "Afgerond"
                             : "Jouw huidige module"}
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-[var(--muted)]">
+                    <p className="mt-3 text-sm font-semibold text-white/68">
+                      {moduleOrder ? `Module ${moduleOrder}` : "Jouw traject"} ·{" "}
                       {moduleTitle}
                     </p>
-                    <h2 className="mt-2 text-2xl font-extrabold leading-tight tracking-[-0.025em] text-[var(--foreground)] sm:text-3xl">
+                    <h2 className="mt-2 max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-4xl">
                       {stepTitle}
                     </h2>
-                    <p className="mt-4 cb-body max-w-xl">{stepCopy}</p>
+                    <p className="mt-4 max-w-2xl text-sm leading-6 text-white/72 sm:text-[0.95rem]">
+                      {stepCopy}
+                    </p>
                   </div>
 
-                  <div className="mt-8">
-                    <div className="flex items-center justify-between gap-4 text-xs font-semibold text-[var(--muted)]">
-                      <span>
-                        {nextStep.completedLessons}/{nextStep.totalLessons} lessen
-                      </span>
-                      <span>{pct}%</span>
+                  <div className="min-w-0 border-white/14 lg:border-l lg:pl-8">
+                    {actionSummary ? (
+                      <div>
+                        <p className="text-sm font-semibold text-white/78">
+                          {actionSummary.completed}/{actionSummary.total} opdrachten afgerond
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-white/56">
+                          {actionSummary.next
+                            ? `Volgende actie: ${actionSummary.next}`
+                            : "Alle opdrachten bij deze les zijn afgerond."}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <div className={actionSummary ? "mt-7" : ""}>
+                      <div className="flex items-center justify-between gap-4 text-xs font-semibold text-white/56">
+                        <span>
+                          {nextStep.completedLessons}/{nextStep.totalLessons} lessen
+                        </span>
+                        <span>{pct}%</span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/18">
+                        <div
+                          className="h-full rounded-full bg-white"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <Link
+                        href={nextStep.href}
+                        className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-bold text-stone-950 transition hover:bg-white/88 sm:w-auto"
+                      >
+                        {nextStep.label}
+                      </Link>
                     </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--border)_72%,transparent)]">
-                      <div
-                        className="h-full rounded-full bg-[var(--foreground)]"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <Link
-                      href={nextStep.href}
-                      className="mt-6 inline-flex w-full cb-btn cb-btn-primary sm:w-auto"
-                    >
-                      {nextStep.label}
-                    </Link>
                   </div>
                 </div>
               </div>
