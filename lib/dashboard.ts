@@ -94,7 +94,7 @@ export async function getDashboardOverview(
     const orderedModules = [...modules].sort((a, b) => a.order_index - b.order_index);
     const moduleIds = orderedModules.map((module) => module.id);
     const [accessMap, examMap, lessons] = await Promise.all([
-      getModuleAccessMap(studentId, orderedModules, accessScope),
+      getModuleAccessMap(studentId, allModules, accessScope),
       getExamsByModuleIds(moduleIds),
       getPublishedLessonsByModuleIds(moduleIds),
     ]);

@@ -75,6 +75,7 @@ export async function getVisibleModulesForStudent(
 /**
  * For each module (by order_index), check if the student has passed the *previous* module's exam.
  * Module 1 is always accessible. Module N+1 requires passed exam for module N.
+ * Access configuration limits what a student can see, but does not bypass the sequence gate.
  * Returns a map: moduleId -> boolean (true = can access).
  */
 export async function getModuleAccessMap(
@@ -87,20 +88,6 @@ export async function getModuleAccessMap(
 
   const ordered = [...modules].sort((a, b) => a.order_index - b.order_index);
   const accessScope = scope ?? (await getStudentModuleAccessScope(studentId));
-
-  if (accessScope.hasExplicitAccess) {
-    for (const mod of ordered) {
-      map.set(mod.id, accessScope.moduleIds.has(mod.id));
-    }
-    return map;
-  }
-
-  if (accessScope.hasAllModulesAccess) {
-    for (const mod of ordered) {
-      map.set(mod.id, true);
-    }
-    return map;
-  }
 
   const supabase = await createClient();
   const { data: results } = await supabase
@@ -129,6 +116,14 @@ export async function getModuleAccessMap(
 
   for (let i = 0; i < ordered.length; i++) {
     const mod = ordered[i];
+    const isVisibleByAccessScope =
+      !accessScope.hasExplicitAccess || accessScope.moduleIds.has(mod.id);
+
+    if (!isVisibleByAccessScope) {
+      map.set(mod.id, false);
+      continue;
+    }
+
     if (i === 0) {
       map.set(mod.id, true);
     } else {

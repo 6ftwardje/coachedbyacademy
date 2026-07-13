@@ -21,7 +21,7 @@ export default async function ModulesPage() {
   const [lessonCountMap, moduleAccessMap, examMap] = await Promise.all([
     getLessonCountsByModuleIds(moduleIds),
     student
-      ? getModuleAccessMap(student.id, modules)
+      ? getModuleAccessMap(student.id, allModules)
       : Promise.resolve(new Map<number, boolean>()),
     getExamsByModuleIds(moduleIds),
   ]);
@@ -49,6 +49,9 @@ export default async function ModulesPage() {
       exam && passedExamIds.has(exam.id) ? "completed" : "available"
     );
   }
+  const hasLockedModules = orderedModules.some(
+    (mod) => moduleStateMap.get(mod.id) === "locked"
+  );
 
   const main =
     orderedModules.length === 0 ? (
@@ -145,6 +148,20 @@ export default async function ModulesPage() {
         description="Werk in volgorde. Rond de lessen en toets af om het volgende blok vrij te spelen."
       />
       <AppPageLayout main={main} />
+      {hasLockedModules && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed inset-x-4 bottom-4 z-30 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-6"
+        >
+          <div className="max-w-sm rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--card)_92%,var(--background)_8%)] px-4 py-3 text-sm text-[var(--foreground)] shadow-[0_18px_50px_rgba(28,25,23,0.16)] backdrop-blur-md dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)]">
+            <span className="font-semibold">Modules vergrendeld</span>
+            <span className="ml-2 text-[var(--muted)]">
+              Rond eerst de vorige moduletoets af.
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
