@@ -3,26 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { submitExam } from "@/app/actions/exam";
-import type { ExamQuestion } from "@/lib/types";
+import { submitModuleExam } from "@/app/actions/exam";
+import type { SerializedExamAttempt } from "@/lib/types";
 
 type Props = {
-  examId: number;
-  questions: ExamQuestion[];
+  attempt: SerializedExamAttempt;
   passingScore: number;
   moduleSlug: string;
-  moduleTitle: string;
 };
 
 export function ExamForm({
-  examId,
-  questions,
+  attempt,
   passingScore,
   moduleSlug,
-  moduleTitle,
 }: Props) {
   const router = useRouter();
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const questions = attempt.questions;
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
     score: number;
@@ -30,8 +28,15 @@ export function ExamForm({
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const allAnswered = questions.every((q) => answers[q.id]?.trim() !== "");
+  const currentQuestion = questions[currentIndex];
+  const answeredCount = questions.filter((q) => answers[q.id] != null).length;
+  const allAnswered = questions.every((q) => answers[q.id] != null);
+  const currentAnswered = currentQuestion
+    ? answers[currentQuestion.id] != null
+    : false;
   const canSubmit = allAnswered && !submitting && !result;
+  const progressValue =
+    questions.length > 0 ? Math.round(((currentIndex + 1) / questions.length) * 100) : 0;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,10 +47,10 @@ export function ExamForm({
 
     const answersList = questions.map((q) => ({
       questionId: q.id,
-      selectedAnswer: answers[q.id] ?? "",
+      selectedOptionId: answers[q.id],
     }));
 
-    submitExam(examId, answersList).then((res) => {
+    submitModuleExam(attempt.attemptId, answersList).then((res) => {
       setSubmitting(false);
       if (res.success && res.score != null && res.passed != null) {
         setResult({ score: res.score, passed: res.passed });
@@ -66,11 +71,15 @@ export function ExamForm({
 
         <div className="mt-3">
           {result.passed ? (
-            <span className="cb-badge cb-badge-completed">Geslaagd</span>
+            <div className="space-y-3">
+              <span className="cb-badge cb-badge-completed">Geslaagd</span>
+              <p className="cb-body">Je volgende module komt nu vrij.</p>
+            </div>
           ) : (
-            <span className="cb-badge cb-badge-locked">
-              Niet geslaagd (je hebt {passingScore}% nodig)
-            </span>
+            <div className="space-y-3">
+              <span className="cb-badge cb-badge-locked">Niet geslaagd</span>
+              <p className="cb-body">Je hebt {passingScore}% nodig om te slagen.</p>
+            </div>
           )}
         </div>
 
@@ -94,6 +103,7 @@ export function ExamForm({
               onClick={() => {
                 setResult(null);
                 setAnswers({});
+                router.refresh();
               }}
               className="cb-btn cb-btn-primary"
             >
@@ -105,45 +115,61 @@ export function ExamForm({
     );
   }
 
+  if (!currentQuestion) {
+    return (
+      <div className="cb-panel p-8">
+        <p className="cb-caption">Deze poging bevat geen vragen.</p>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="space-y-6">
-        {questions.map((q, index) => (
-          <fieldset
-            key={q.id}
-            className="cb-panel p-5"
-          >
-            <legend className="cb-eyebrow">
-              Vraag {index + 1} van {questions.length}
-            </legend>
-            <p className="mt-2 text-lg font-semibold text-[var(--foreground)] leading-snug">
-              {q.question}
-            </p>
-            <div className="mt-4 space-y-2">
-              {q.options.map((option) => (
-                <label
-                  key={option}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:bg-[color-mix(in_oklab,var(--card)_85%,var(--muted)_15%)] has-[:checked]:border-[var(--foreground)] has-[:checked]:bg-[color-mix(in_oklab,var(--card)_78%,var(--muted)_22%)]"
-                >
-                  <input
-                    type="radio"
-                    name={`q-${q.id}`}
-                    value={option}
-                    checked={answers[q.id] === option}
-                    onChange={() =>
-                      setAnswers((prev) => ({ ...prev, [q.id]: option }))
-                    }
-                    className="mt-0.5 h-4 w-4 border-[var(--border)] text-[var(--foreground)] focus:ring-[color-mix(in_oklab,var(--foreground)_35%,transparent)]"
-                  />
-                  <span className="font-medium text-[var(--foreground)]">
-                    {option}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        ))}
-      </div>
+      <fieldset className="cb-panel p-5 sm:p-7">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <legend className="cb-eyebrow">
+            Vraag {currentIndex + 1} van {questions.length}
+          </legend>
+          <span className="cb-caption">{answeredCount} beantwoord</span>
+        </div>
+
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--border)_70%,transparent)]">
+          <div
+            className="h-full rounded-full bg-[var(--foreground)] transition-[width]"
+            style={{ width: `${progressValue}%` }}
+          />
+        </div>
+
+        <p className="mt-6 text-xl font-semibold leading-snug text-[var(--foreground)]">
+          {currentQuestion.questionText}
+        </p>
+
+        <div className="mt-5 space-y-2">
+          {currentQuestion.options.map((option) => (
+            <label
+              key={option.id}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-colors hover:bg-[color-mix(in_oklab,var(--card)_85%,var(--muted)_15%)] has-[:checked]:border-[var(--foreground)] has-[:checked]:bg-[color-mix(in_oklab,var(--card)_78%,var(--muted)_22%)]"
+            >
+              <input
+                type="radio"
+                name={`q-${currentQuestion.id}`}
+                value={option.id}
+                checked={answers[currentQuestion.id] === option.id}
+                onChange={() =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    [currentQuestion.id]: option.id,
+                  }))
+                }
+                className="mt-0.5 h-4 w-4 border-[var(--border)] text-[var(--foreground)] focus:ring-[color-mix(in_oklab,var(--foreground)_35%,transparent)]"
+              />
+              <span className="font-medium text-[var(--foreground)]">
+                {option.optionText}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       {error && (
         <p className="cb-caption text-red-600" role="alert">
@@ -151,14 +177,35 @@ export function ExamForm({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
-          type="submit"
-          disabled={!canSubmit}
-          className="cb-btn cb-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+          type="button"
+          disabled={currentIndex === 0 || submitting}
+          onClick={() => setCurrentIndex((index) => Math.max(0, index - 1))}
+          className="cb-btn cb-btn-secondary disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? "Indienen..." : "Toets indienen"}
+          Terug
         </button>
+        {currentIndex < questions.length - 1 ? (
+          <button
+            type="button"
+            disabled={!currentAnswered || submitting}
+            onClick={() =>
+              setCurrentIndex((index) => Math.min(questions.length - 1, index + 1))
+            }
+            className="cb-btn cb-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Verder
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="cb-btn cb-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? "Indienen..." : "Toets indienen"}
+          </button>
+        )}
         {!allAnswered && (
           <p className="self-center cb-caption">
             Beantwoord alle vragen om in te dienen.

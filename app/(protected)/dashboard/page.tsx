@@ -115,7 +115,7 @@ export default async function DashboardPage() {
       <AppPageLayout
         main={
           <>
-            <section className="cb-dashboard-hero-bleed relative isolate min-h-[520px] overflow-hidden bg-stone-950 text-white sm:min-h-[560px] lg:min-h-[600px]">
+            <section className="cb-dashboard-hero-bleed relative isolate h-[50vh] max-h-[520px] overflow-hidden bg-stone-950 text-white">
               <div className="absolute inset-0 bg-stone-950" />
               <div className="absolute inset-0 opacity-34">
                 <MuxBackgroundVideo playbackId={DASHBOARD_HERO_PLAYBACK_ID} />
@@ -123,17 +123,17 @@ export default async function DashboardPage() {
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,10,9,0.96)_0%,rgba(12,10,9,0.7)_50%,rgba(12,10,9,0.9)_100%)]" />
               <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-stone-950 to-transparent" />
 
-              <div className="relative z-10 flex min-h-[inherit] flex-col justify-between p-5 sm:p-8 lg:p-10">
+              <div className="relative z-10 flex h-full flex-col justify-between p-5 sm:p-7 lg:p-8">
                 <div className="max-w-4xl">
                   <p className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-white/56">
-                    Dashboard
+                    Home
                   </p>
-                  <h1 className="mt-3 text-4xl font-extrabold leading-[1.02] text-white sm:text-5xl lg:text-6xl">
+                  <h1 className="mt-3 text-4xl font-extrabold leading-[1.02] text-white sm:text-5xl lg:text-[3.5rem]">
                     {title}
                   </h1>
                 </div>
 
-                <div className="mt-12 grid gap-8 border-t border-white/14 pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,420px)] lg:items-end">
+                <div className="mt-8 grid gap-6 border-t border-white/14 pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,420px)] lg:items-end">
                   <div className="min-w-0">
                     <div className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-white/56">
                       {nextStep.type === "lesson"
@@ -148,10 +148,10 @@ export default async function DashboardPage() {
                       {moduleOrder ? `Module ${moduleOrder}` : "Jouw traject"} ·{" "}
                       {moduleTitle}
                     </p>
-                    <h2 className="mt-2 max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-4xl">
+                    <h2 className="mt-2 max-w-3xl text-3xl font-extrabold leading-tight text-white sm:text-[2rem]">
                       {stepTitle}
                     </h2>
-                    <p className="mt-4 max-w-2xl text-sm leading-6 text-white/72 sm:text-[0.95rem]">
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-white/72 sm:text-[0.95rem]">
                       {stepCopy}
                     </p>
                   </div>
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
                       </div>
                     ) : null}
 
-                    <div className={actionSummary ? "mt-7" : ""}>
+                    <div className={actionSummary ? "mt-5" : ""}>
                       <div className="flex items-center justify-between gap-4 text-xs font-semibold text-white/56">
                         <span>
                           {nextStep.completedLessons}/{nextStep.totalLessons} lessen
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
                       </div>
                       <Link
                         href={nextStep.href}
-                        className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-bold text-stone-950 transition hover:bg-white/88 sm:w-auto"
+                        className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-bold text-stone-950 transition hover:bg-white/88 sm:w-auto"
                       >
                         {nextStep.label}
                       </Link>

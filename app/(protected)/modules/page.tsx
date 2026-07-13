@@ -139,7 +139,7 @@ export default async function ModulesPage() {
   return (
     <div>
       <PageHeader
-        breadcrumbs={[{ label: "Academy" }]}
+        breadcrumbs={[{ label: "Modules" }]}
         eyebrow="Jouw opleiding"
         title="Modules"
         description="Werk in volgorde. Rond de lessen en toets af om het volgende blok vrij te spelen."

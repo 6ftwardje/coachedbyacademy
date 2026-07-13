@@ -27,7 +27,7 @@ const adminNavItem = {
 const coreNav = [
   {
     href: "/dashboard",
-    label: "Dashboard",
+    label: "Home",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path
@@ -41,7 +41,7 @@ const coreNav = [
   },
   {
     href: "/modules",
-    label: "Academy",
+    label: "Modules",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path

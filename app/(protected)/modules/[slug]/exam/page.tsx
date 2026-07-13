@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ensureCurrentStudent } from "@/lib/students";
 import { getModuleBySlug } from "@/lib/modules";
 import { getPublishedLessonsByModuleId } from "@/lib/lessons";
-import { getExamByModuleId, getExamQuestions } from "@/lib/exams";
+import { getExamByModuleId, startModuleExam } from "@/lib/exams";
 import { areAllLessonsCompleted } from "@/lib/progress";
 import { getModuleAccessMap } from "@/lib/module-gate";
 import { getPublishedModules } from "@/lib/modules";
@@ -40,7 +40,7 @@ export default async function ModuleExamPage({ params }: Props) {
       <div>
         <PageHeader
           breadcrumbs={[
-            { label: "Academy", href: "/modules" },
+            { label: "Modules", href: "/modules" },
             { label: "Toets" },
           ]}
           eyebrow="Toegang"
@@ -61,7 +61,7 @@ export default async function ModuleExamPage({ params }: Props) {
       <div>
         <PageHeader
           breadcrumbs={[
-            { label: "Academy", href: "/modules" },
+            { label: "Modules", href: "/modules" },
             { label: moduleData.title, href: `/modules/${moduleData.slug}` },
             { label: "Toets" },
           ]}
@@ -86,7 +86,7 @@ export default async function ModuleExamPage({ params }: Props) {
       <div>
         <PageHeader
           breadcrumbs={[
-            { label: "Academy", href: "/modules" },
+            { label: "Modules", href: "/modules" },
             { label: moduleData.title, href: `/modules/${moduleData.slug}` },
             { label: "Toets" },
           ]}
@@ -106,7 +106,7 @@ export default async function ModuleExamPage({ params }: Props) {
     );
   }
 
-  const questions = await getExamQuestions(exam.id);
+  const attemptResult = await startModuleExam(moduleData.id);
 
   const rail = (
     <>
@@ -139,9 +139,19 @@ export default async function ModuleExamPage({ params }: Props) {
   );
 
   const main =
-    questions.length === 0 ? (
+    !attemptResult.success ? (
       <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
-        <p className="cb-caption">Deze toets bevat nog geen vragen.</p>
+        <div className="cb-eyebrow">Niet startbaar</div>
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+          {attemptResult.error}
+        </h2>
+        {attemptResult.validQuestionCount != null && (
+          <p className="cb-caption mx-auto mt-3 max-w-xl">
+            Geldige actieve vragen: {attemptResult.validQuestionCount} /{" "}
+            {attemptResult.requiredQuestionCount ?? 10}. Actieve vragen totaal:{" "}
+            {attemptResult.activeQuestionCount ?? 0}.
+          </p>
+        )}
         <Link
           href={`/modules/${moduleData.slug}`}
           className="mt-6 inline-flex text-sm font-semibold text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
@@ -151,11 +161,9 @@ export default async function ModuleExamPage({ params }: Props) {
       </div>
     ) : (
       <ExamForm
-        examId={exam.id}
-        questions={questions}
+        attempt={attemptResult.attempt}
         passingScore={exam.passing_score}
         moduleSlug={moduleData.slug}
-        moduleTitle={moduleData.title}
       />
     );
 
@@ -163,7 +171,7 @@ export default async function ModuleExamPage({ params }: Props) {
     <div>
       <PageHeader
         breadcrumbs={[
-          { label: "Academy", href: "/modules" },
+          { label: "Modules", href: "/modules" },
           { label: moduleData.title, href: `/modules/${moduleData.slug}` },
           { label: "Toets" },
         ]}

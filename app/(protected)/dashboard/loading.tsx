@@ -1,11 +1,11 @@
 export default function DashboardLoading() {
   return (
     <div className="animate-pulse">
-      <div className="cb-dashboard-hero-bleed min-h-[520px] overflow-hidden bg-stone-950 p-5 sm:min-h-[560px] sm:p-8 lg:min-h-[600px] lg:p-10">
+      <div className="cb-dashboard-hero-bleed h-[50vh] max-h-[520px] overflow-hidden bg-stone-950 p-5 sm:p-7 lg:p-8">
         <div className="h-3 w-28 rounded bg-white/10" />
         <div className="mt-4 h-14 w-[72%] max-w-2xl rounded-xl bg-white/12" />
 
-        <div className="mt-28 grid gap-8 border-t border-white/14 pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,420px)] lg:items-end">
+        <div className="mt-20 grid gap-6 border-t border-white/14 pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,420px)] lg:items-end">
           <div>
             <div className="h-3 w-32 rounded bg-white/10" />
             <div className="mt-5 h-4 w-44 rounded bg-white/10" />

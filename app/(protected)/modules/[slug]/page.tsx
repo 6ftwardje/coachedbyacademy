@@ -52,7 +52,7 @@ export default async function ModuleDetailPage({ params }: Props) {
       <div>
         <PageHeader
           breadcrumbs={[
-            { label: "Academy", href: "/modules" },
+            { label: "Modules", href: "/modules" },
             { label: "Module" },
           ]}
           eyebrow="Toegang"
@@ -264,7 +264,7 @@ export default async function ModuleDetailPage({ params }: Props) {
     <div>
       <PageHeader
         breadcrumbs={[
-          { label: "Academy", href: "/modules" },
+          { label: "Modules", href: "/modules" },
           { label: moduleData.title },
         ]}
         eyebrow={`Module ${moduleData.order_index}`}

@@ -11,6 +11,7 @@ It includes:
 - `pgcrypto` extension
 - Tables: `students`, `modules`, `lessons`, `exams`, `exam_questions`, `exam_results`, `progress`
 - Follow-up migration: `lesson_action_progress`, plus `lessons.takeaway` and `lessons.action_items`
+- Follow-up migration: `lesson_transcripts`, `lesson_transcript_segments`, `content_chunks`, and `transcription_jobs`
 - `set_updated_at()` trigger and triggers on all tables with `updated_at`
 - Check constraints: `access_level >= 1`, `passing_score` and `score` 0–100, phone length 8–20, `exam_questions.options` as JSON array
 - Indexes for FKs, unique keys, and filtered indexes for `is_published`
@@ -33,6 +34,10 @@ Run it with Supabase CLI (e.g. `supabase db push`) or apply the file in the SQL 
 | **exam_results** | One row per attempt. Stores `score`, `passed`, and `submitted_at`. No unique on `(student_id, exam_id)` so retakes are allowed. |
 | **progress** | One row per student per lesson: `watched` and `watched_at`. Used to enforce “complete all lessons before exam” and to drive lesson locking. |
 | **lesson_action_progress** | One row per student, lesson, and action index. Stores personal checklist progress without affecting lesson or module gating. |
+| **lesson_transcripts** | Versioned transcript records per lesson, provider, asset/track, language, status, raw text, normalized text, hash, and error metadata. Designed so a replaced video can supersede older transcripts without losing audit history. |
+| **lesson_transcript_segments** | Timestamped transcript cues linked to a transcript and lesson. Keeps `start_ms`/`end_ms` available for AI citations and future transcript UI. |
+| **content_chunks** | Normalized retrieval units derived from transcripts, lesson metadata, exam questions, or manual input. Embedding status is tracked here, while vector columns can be added later. |
+| **transcription_jobs** | Durable async queue for provider imports, caption generation, chunking, and future embedding jobs. Uses idempotency keys, retries, run scheduling, and lock metadata. |
 
 Together: **modules** and **lessons** define the curriculum; **exams** and **exam_questions** define assessments; **progress** and **exam_results** record what each **student** has done, so the app can lock lessons in sequence and unlock the next module only after passing the previous exam.
 
@@ -73,3 +78,5 @@ Student-scoped policies use the pattern:
 `EXISTS (SELECT 1 FROM students WHERE students.id = <table>.student_id AND students.auth_user_id = auth.uid())`
 
 so that `student_id` is resolved from `students.id`, not directly from `auth.uid()`.
+
+Transcript and AI-context tables are intentionally admin-only through RLS. Student-facing lesson access does not imply direct access to raw transcripts, chunks, job payloads, or future embeddings. Webhooks and background workers should use a service-role server client and must still enforce their own provider signature checks.

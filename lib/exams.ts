@@ -1,11 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Exam, ExamQuestion, ExamResult } from "@/lib/types";
+import type {
+  Exam,
+  ExamQuestion,
+  ExamResult,
+  SerializedExamAttempt,
+} from "@/lib/types";
 
 const EXAM_SELECT =
   "id, module_id, title, description, passing_score, is_published, created_at, updated_at";
 
 const EXAM_QUESTION_SELECT =
-  "id, exam_id, question, options, correct_answer, order_index, created_at, updated_at";
+  "id, exam_id, module_id, question, question_text, explanation, options, correct_answer, order_index, is_active, deleted_at, created_at, updated_at";
 
 const EXAM_RESULT_SELECT =
   "id, student_id, exam_id, score, passed, submitted_at, created_at";
@@ -63,6 +68,100 @@ export async function getExamQuestions(
     ...row,
     options: Array.isArray(row.options) ? row.options : [],
   })) as ExamQuestion[];
+}
+
+type StartExamRpcResponse =
+  | {
+      success: true;
+      attempt: SerializedExamAttempt;
+    }
+  | {
+      success: false;
+      error: string;
+      activeQuestionCount?: number;
+      validQuestionCount?: number;
+      requiredQuestionCount?: number;
+    };
+
+export async function startModuleExam(
+  moduleId: number
+): Promise<StartExamRpcResponse> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("start_module_exam", {
+    p_module_id: moduleId,
+  });
+
+  if (error) {
+    console.error("startModuleExam", error.message);
+    return {
+      success: false,
+      error: "De toets kon niet worden gestart.",
+    };
+  }
+
+  return normalizeStartExamResponse(data);
+}
+
+function normalizeStartExamResponse(data: unknown): StartExamRpcResponse {
+  if (!data || typeof data !== "object") {
+    return { success: false, error: "De toets gaf geen geldig antwoord terug." };
+  }
+
+  const payload = data as Record<string, unknown>;
+  if (payload.success === true && payload.attempt) {
+    return {
+      success: true,
+      attempt: normalizeSerializedAttempt(payload.attempt),
+    };
+  }
+
+  return {
+    success: false,
+    error:
+      typeof payload.error === "string"
+        ? payload.error
+        : "De toets kon niet worden gestart.",
+    activeQuestionCount: asOptionalNumber(payload.activeQuestionCount),
+    validQuestionCount: asOptionalNumber(payload.validQuestionCount),
+    requiredQuestionCount: asOptionalNumber(payload.requiredQuestionCount),
+  };
+}
+
+function normalizeSerializedAttempt(value: unknown): SerializedExamAttempt {
+  const payload = value as Record<string, unknown>;
+  const questions = Array.isArray(payload.questions) ? payload.questions : [];
+
+  return {
+    attemptId: String(payload.attemptId ?? ""),
+    examId: Number(payload.examId ?? 0),
+    moduleId: Number(payload.moduleId ?? 0),
+    status: payload.status === "submitted" ? "submitted" : "in_progress",
+    score: payload.score == null ? null : Number(payload.score),
+    passed: payload.passed == null ? null : Boolean(payload.passed),
+    totalQuestions: Number(payload.totalQuestions ?? questions.length),
+    questions: questions.map((question) => {
+      const q = question as Record<string, unknown>;
+      const options = Array.isArray(q.options) ? q.options : [];
+      return {
+        id: Number(q.id ?? 0),
+        questionText: String(q.questionText ?? ""),
+        explanation: q.explanation == null ? null : String(q.explanation),
+        options: options.map((option) => {
+          const opt = option as Record<string, unknown>;
+          return {
+            id: Number(opt.id ?? 0),
+            optionText: String(opt.optionText ?? ""),
+          };
+        }),
+      };
+    }),
+  };
+}
+
+function asOptionalNumber(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 /**

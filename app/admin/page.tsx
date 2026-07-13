@@ -54,11 +54,17 @@ export default function AdminHomePage() {
         </div>
 
         <div className="cb-panel border-dashed p-6 sm:col-span-2 lg:col-span-1">
-          <div className="cb-eyebrow">{`Coming soon`}</div>
-          <h2 className="cb-h2 mt-4">Exam analytics</h2>
+          <div className="cb-eyebrow">{`Exams`}</div>
+          <h2 className="cb-h2 mt-4">Question bank</h2>
           <p className="cb-body mt-2">
-            Placeholder for cohort-level reporting, question-level insights, and drop-off analysis.
+            Manage module exam questions, answer options, validity, and publishing readiness.
           </p>
+          <Link
+            href="/admin/exams"
+            className="mt-4 inline-flex text-sm font-bold text-[var(--foreground)] underline-offset-4 hover:underline"
+          >
+            Open exams
+          </Link>
         </div>
       </div>
     </div>

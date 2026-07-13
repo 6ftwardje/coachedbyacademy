@@ -1,4 +1,9 @@
-type MuxPlaybackPolicy = "public" | "signed";
+export type MuxPlaybackPolicy = "public" | "signed";
+
+type MuxGeneratedSubtitle = {
+  language_code: string;
+  name: string;
+};
 
 type MuxUpload = {
   id: string;
@@ -11,7 +16,17 @@ type MuxUpload = {
   };
 };
 
-type MuxAsset = {
+export type MuxAssetTrack = {
+  id: string;
+  type?: "video" | "audio" | "text";
+  text_type?: "subtitles" | "captions";
+  text_source?: "uploaded" | "generated_vod";
+  status?: "preparing" | "ready" | "errored";
+  language_code?: string;
+  name?: string;
+};
+
+export type MuxAsset = {
   id: string;
   status?: "preparing" | "ready" | "errored";
   duration?: number;
@@ -19,6 +34,7 @@ type MuxAsset = {
     id: string;
     policy: MuxPlaybackPolicy;
   }>;
+  tracks?: MuxAssetTrack[];
   errors?: {
     type?: string;
     messages?: string[];
@@ -70,14 +86,26 @@ async function muxFetch<T>(
   return json;
 }
 
+export function getDefaultGeneratedSubtitles(): MuxGeneratedSubtitle[] {
+  const languageCode =
+    process.env.MUX_GENERATED_SUBTITLE_LANGUAGE_CODE?.trim() || "nl";
+  const name =
+    process.env.MUX_GENERATED_SUBTITLE_NAME?.trim() ||
+    (languageCode === "nl" ? "Nederlands (auto)" : "Auto captions");
+
+  return [{ language_code: languageCode, name }];
+}
+
 export async function createMuxDirectUpload({
   lessonId,
   corsOrigin,
   playbackPolicy = "public",
+  generatedSubtitles = getDefaultGeneratedSubtitles(),
 }: {
   lessonId: number;
   corsOrigin: string;
   playbackPolicy?: MuxPlaybackPolicy;
+  generatedSubtitles?: MuxGeneratedSubtitle[];
 }): Promise<{ id: string; url: string }> {
   const response = await muxFetch<MuxUpload>("/video/v1/uploads", {
     method: "POST",
@@ -86,6 +114,10 @@ export async function createMuxDirectUpload({
       new_asset_settings: {
         playback_policies: [playbackPolicy],
         passthrough: JSON.stringify({ lessonId }),
+        inputs:
+          generatedSubtitles.length > 0
+            ? [{ generated_subtitles: generatedSubtitles }]
+            : undefined,
       },
     }),
   });
@@ -108,6 +140,24 @@ export async function getMuxAsset(assetId: string): Promise<MuxAsset> {
   const response = await muxFetch<MuxAsset>(`/video/v1/assets/${assetId}`);
   if (!response.data) throw new Error("Mux asset not found.");
   return response.data;
+}
+
+export async function generateMuxTrackSubtitles({
+  assetId,
+  trackId,
+  generatedSubtitles = getDefaultGeneratedSubtitles(),
+}: {
+  assetId: string;
+  trackId: string;
+  generatedSubtitles?: MuxGeneratedSubtitle[];
+}): Promise<void> {
+  await muxFetch<unknown>(
+    `/video/v1/assets/${assetId}/tracks/${trackId}/generate-subtitles`,
+    {
+      method: "POST",
+      body: JSON.stringify({ generated_subtitles: generatedSubtitles }),
+    }
+  );
 }
 
 export function getMuxErrorMessage(
