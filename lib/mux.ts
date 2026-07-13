@@ -49,6 +49,13 @@ type MuxResponse<T> = {
   };
 };
 
+type MuxFetchInit = RequestInit & {
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
+};
+
 function getMuxAuthHeader(): string {
   const tokenId = process.env.MUX_TOKEN_ID;
   const tokenSecret = process.env.MUX_TOKEN_SECRET;
@@ -62,16 +69,19 @@ function getMuxAuthHeader(): string {
 
 async function muxFetch<T>(
   path: string,
-  init?: RequestInit
+  init?: MuxFetchInit
 ): Promise<MuxResponse<T>> {
+  const { headers, ...fetchInit } = init ?? {};
+  const cache = fetchInit.cache ?? (fetchInit.next ? undefined : "no-store");
+
   const res = await fetch(`https://api.mux.com${path}`, {
-    ...init,
+    ...fetchInit,
+    cache,
     headers: {
       Authorization: getMuxAuthHeader(),
       "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
+      ...(headers ?? {}),
     },
-    cache: "no-store",
   });
 
   const json = (await res.json().catch(() => ({}))) as MuxResponse<T>;
@@ -136,8 +146,14 @@ export async function getMuxUpload(uploadId: string): Promise<MuxUpload> {
   return response.data;
 }
 
-export async function getMuxAsset(assetId: string): Promise<MuxAsset> {
-  const response = await muxFetch<MuxAsset>(`/video/v1/assets/${assetId}`);
+export async function getMuxAsset(
+  assetId: string,
+  init?: MuxFetchInit
+): Promise<MuxAsset> {
+  const response = await muxFetch<MuxAsset>(
+    `/video/v1/assets/${assetId}`,
+    init
+  );
   if (!response.data) throw new Error("Mux asset not found.");
   return response.data;
 }

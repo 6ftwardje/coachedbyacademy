@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CourseThumbnail } from "@/components/CourseThumbnail";
+import { HomeIntroVideoPlayer } from "@/components/HomeIntroVideoPlayer";
 import { MuxBackgroundVideo } from "@/components/MuxBackgroundVideo";
 import { ModuleStateBadge } from "@/components/StatusBadge";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
@@ -9,6 +10,7 @@ import {
   getDashboardOverview,
   type DashboardModuleSummary,
 } from "@/lib/dashboard";
+import { getHomeIntroVideo } from "@/lib/home-intro-video";
 import { ensureCurrentStudent } from "@/lib/students";
 
 const DASHBOARD_HERO_PLAYBACK_ID =
@@ -63,7 +65,10 @@ export default async function DashboardPage() {
   const { student } = await ensureCurrentStudent();
   if (!student) return null;
 
-  const overview = await getDashboardOverview(student.id);
+  const [overview, introVideo] = await Promise.all([
+    getDashboardOverview(student.id),
+    getHomeIntroVideo(),
+  ]);
   const { nextStep, modules } = overview;
   const firstName = student.name?.split(" ")[0] ?? null;
   const title = firstName ? `Welkom terug, ${firstName}` : "Welkom terug";
@@ -192,6 +197,24 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section className="grid gap-6 border-y border-[var(--border)] py-8 lg:grid-cols-[minmax(220px,320px)_minmax(0,680px)] lg:items-center lg:gap-10">
+              <div className="max-w-sm">
+                <div className="cb-eyebrow">Start hier</div>
+                <h2 className="mt-2 cb-section-title">Welkom bij de Academy</h2>
+                <p className="mt-2 cb-caption">
+                  Bekijk deze korte introductie voordat je verdergaat met je
+                  traject.
+                </p>
+              </div>
+
+              <div className="min-w-0 lg:max-w-[680px]">
+                <HomeIntroVideoPlayer
+                  playbackId={introVideo.playbackId}
+                  title="Introductie tot Coachedby Academy"
+                />
               </div>
             </section>
 
