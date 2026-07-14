@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { ensureCurrentStudent } from "@/lib/students";
-import { getPublishedModules } from "@/lib/modules";
-import { getLessonCountsByModuleIds } from "@/lib/lessons";
-import { getModuleAccessMap, getVisibleModulesForStudent } from "@/lib/module-gate";
-import { getExamsByModuleIds, getPassedExamIdsForStudent } from "@/lib/exams";
+import { getModulesOverview } from "@/lib/modules-overview";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { ModuleStateBadge } from "@/components/StatusBadge";
@@ -12,46 +9,13 @@ import { asText } from "@/lib/as-text";
 
 export default async function ModulesPage() {
   const { student } = await ensureCurrentStudent();
-  const allModules = await getPublishedModules();
-  const modules = student
-    ? await getVisibleModulesForStudent(student.id, allModules)
-    : allModules;
-  const moduleIds = modules.map((module) => module.id);
-
-  const [lessonCountMap, moduleAccessMap, examMap] = await Promise.all([
-    getLessonCountsByModuleIds(moduleIds),
-    student
-      ? getModuleAccessMap(student.id, allModules)
-      : Promise.resolve(new Map<number, boolean>()),
-    getExamsByModuleIds(moduleIds),
-  ]);
-
-  const passedExamIds = student
-    ? await getPassedExamIdsForStudent(
-        student.id,
-        [...examMap.values()].map((exam) => exam.id)
-      )
-    : new Set<number>();
-
-  const orderedModules = [...modules].sort((a, b) => a.order_index - b.order_index);
-
-  const moduleStateMap = new Map<number, "locked" | "available" | "completed">();
-  for (const mod of orderedModules) {
-    const canAccess = moduleAccessMap.get(mod.id) === true;
-    if (!canAccess) {
-      moduleStateMap.set(mod.id, "locked");
-      continue;
-    }
-
-    const exam = examMap.get(mod.id);
-    moduleStateMap.set(
-      mod.id,
-      exam && passedExamIds.has(exam.id) ? "completed" : "available"
-    );
-  }
-  const hasLockedModules = orderedModules.some(
-    (mod) => moduleStateMap.get(mod.id) === "locked"
-  );
+  if (!student) return null;
+  const {
+    orderedModules,
+    lessonCountMap,
+    moduleStateMap,
+    hasLockedModules,
+  } = await getModulesOverview(student.id);
 
   const main =
     orderedModules.length === 0 ? (

@@ -13,6 +13,14 @@ import {
 import { getPublishedModules } from "@/lib/modules";
 import { timeAsync } from "@/lib/perf";
 import { getProgressByLessonIds } from "@/lib/progress";
+import {
+  buildCourseModuleAccessMap,
+  getCourseExamMap,
+  getCourseProgressMap,
+  getStudentAccessScope,
+  getStudentCourseData,
+  getVisibleCourseModules,
+} from "@/lib/student-course-data";
 import type { DashboardStats, Exam, Lesson, Module } from "@/lib/types";
 
 export type DashboardModuleState = "locked" | "available" | "completed";
@@ -65,22 +73,6 @@ export type DashboardNextStep =
 export type DashboardOverview = {
   nextStep: DashboardNextStep;
   modules: DashboardModuleSummary[];
-};
-
-type DashboardProgress = {
-  lesson_id: number;
-  watched: boolean;
-  watched_at: string | null;
-};
-
-type DashboardRpcPayload = {
-  accessLevel: number;
-  moduleAccessIds: number[];
-  modules: Module[];
-  lessons: Lesson[];
-  exams: Exam[];
-  passedExamIds: number[];
-  progress: DashboardProgress[];
 };
 
 type DashboardOverviewInput = {
@@ -173,57 +165,26 @@ async function getDashboardOverviewLegacy(
 async function getDashboardOverviewFromRpc(
   studentId: string
 ): Promise<DashboardOverview> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_student_dashboard_data", {
-    p_student_id: studentId,
-  });
-
-  if (error) throw new Error(error.message);
-  if (!isDashboardRpcPayload(data)) {
-    throw new Error("Dashboard RPC returned an invalid payload.");
-  }
-
-  const accessScope: StudentModuleAccessScope = {
-    hasExplicitAccess: data.moduleAccessIds.length > 0,
-    hasAllModulesAccess: data.accessLevel >= 2,
-    moduleIds: new Set(data.moduleAccessIds.map(Number)),
-  };
+  const data = await getStudentCourseData(studentId);
+  const accessScope = getStudentAccessScope(data);
   const visibleModuleIds = new Set(
-    (accessScope.hasExplicitAccess
-      ? data.modules.filter((module) => accessScope.moduleIds.has(module.id))
-      : data.modules
-    ).map((module) => module.id)
+    getVisibleCourseModules(data, accessScope).map((module) => module.id)
   );
-  const examMap = new Map<number, Exam>();
-  for (const exam of data.exams) {
-    if (visibleModuleIds.has(Number(exam.module_id))) {
-      examMap.set(Number(exam.module_id), exam);
-    }
-  }
-  const progressMap = new Map<
-    number,
-    { watched: boolean; watched_at: string | null }
-  >();
-  for (const progress of data.progress) {
-    progressMap.set(Number(progress.lesson_id), {
-      watched: progress.watched === true,
-      watched_at: progress.watched_at,
-    });
-  }
+  const passedExamIds = new Set(data.passedExamIds.map(Number));
 
   return buildDashboardOverview({
     studentId,
     allModules: data.modules,
     accessScope,
     lessons: data.lessons,
-    examMap,
-    passedExamIds: new Set(data.passedExamIds.map(Number)),
-    progressMap,
-    accessMap: buildModuleAccessMap(
+    examMap: getCourseExamMap(data.exams, visibleModuleIds),
+    passedExamIds,
+    progressMap: getCourseProgressMap(data.progress),
+    accessMap: buildCourseModuleAccessMap(
       data.modules,
       accessScope,
       data.exams,
-      new Set(data.passedExamIds.map(Number))
+      passedExamIds
     ),
   });
 }
@@ -356,58 +317,4 @@ async function buildDashboardOverview({
       totalLessons: currentSummary.totalLessons,
     },
   };
-}
-
-function buildModuleAccessMap(
-  modules: Module[],
-  accessScope: StudentModuleAccessScope,
-  exams: Exam[],
-  passedExamIds: Set<number>
-): Map<number, boolean> {
-  const accessMap = new Map<number, boolean>();
-  const orderedModules = [...modules].sort(
-    (a, b) => a.order_index - b.order_index
-  );
-  const examIdByModuleId = new Map(
-    exams.map((exam) => [Number(exam.module_id), Number(exam.id)])
-  );
-
-  for (let index = 0; index < orderedModules.length; index += 1) {
-    const courseModule = orderedModules[index];
-    if (
-      accessScope.hasExplicitAccess &&
-      !accessScope.moduleIds.has(courseModule.id)
-    ) {
-      accessMap.set(courseModule.id, false);
-      continue;
-    }
-
-    if (index === 0) {
-      accessMap.set(courseModule.id, true);
-      continue;
-    }
-
-    const previousModule = orderedModules[index - 1];
-    const previousExamId = examIdByModuleId.get(previousModule.id);
-    accessMap.set(
-      courseModule.id,
-      previousExamId != null && passedExamIds.has(previousExamId)
-    );
-  }
-
-  return accessMap;
-}
-
-function isDashboardRpcPayload(value: unknown): value is DashboardRpcPayload {
-  if (!value || typeof value !== "object") return false;
-  const payload = value as Record<string, unknown>;
-  return (
-    typeof payload.accessLevel === "number" &&
-    Array.isArray(payload.moduleAccessIds) &&
-    Array.isArray(payload.modules) &&
-    Array.isArray(payload.lessons) &&
-    Array.isArray(payload.exams) &&
-    Array.isArray(payload.passedExamIds) &&
-    Array.isArray(payload.progress)
-  );
 }
