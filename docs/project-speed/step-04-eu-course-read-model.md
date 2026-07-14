@@ -27,7 +27,7 @@ region result is not used as proof of improvement.
 progress map and sequential module gate. Both the dashboard and modules page
 now use this shared implementation.
 
-With `PROJECT_SPEED_MODULES_RPC=on`, `/modules` replaces its chained module,
+With `PROJECT_SPEED_MODULES_RPC=on`, `/modules` can replace its chained module,
 access, lesson-count, exam and result reads with one Supabase call. An RPC error
 automatically falls back to the legacy implementation.
 
@@ -40,14 +40,28 @@ Verified locally on 2026-07-14:
 - Legacy and RPC module pages have the same text-and-link SHA-256 hash.
 - A warm internal modules query decreased from approximately 258 ms to 60 ms.
 
+After the Dublin move, a targeted 15-run production A/B showed a different
+route-level result:
+
+| Mode | TTFB p50 | Slowest run |
+| --- | ---: | ---: |
+| Shared RPC on | 435 ms | 892 ms |
+| Shared RPC off | 407 ms | 921 ms |
+
+With the database and function now co-located, parallel small reads are slightly
+faster at the browser than the larger combined payload. Production therefore
+keeps `PROJECT_SPEED_MODULES_RPC=off`. The shared adapter remains useful for the
+dashboard and as an explicitly reversible experiment, but is not claimed as a
+modules-page speed improvement.
+
 ## Rollback
 
-Set `PROJECT_SPEED_MODULES_RPC=off` and redeploy to restore the legacy modules
-queries. The shared dashboard adapter and Dublin Functions region are
-independent and remain active.
+Production is already set to `PROJECT_SPEED_MODULES_RPC=off`. The shared
+dashboard adapter and Dublin Functions region are independent and remain
+active.
 
 ## Exit criteria
 
 Step 4 is complete when the production deploy reports `eu-west-1`, all browser
-tests pass, the modules flag is active and a production baseline has been
-recorded.
+tests pass, both modules modes have been compared in production and the faster
+mode remains active.
