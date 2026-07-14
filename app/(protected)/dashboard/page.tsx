@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CourseThumbnail } from "@/components/CourseThumbnail";
 import { HomeIntroVideoPlayer } from "@/components/HomeIntroVideoPlayer";
-import { MuxBackgroundVideo } from "@/components/MuxBackgroundVideo";
+import { DeferredMuxBackgroundVideo } from "@/components/DeferredMuxBackgroundVideo";
 import { ModuleStateBadge } from "@/components/StatusBadge";
 import { AppPageLayout } from "@/components/layout/AppPageLayout";
 import { ContentSection } from "@/components/layout/ContentSection";
@@ -123,7 +123,9 @@ export default async function DashboardPage() {
             <section className="cb-dashboard-hero-bleed relative isolate h-[50vh] max-h-[520px] overflow-hidden bg-stone-950 text-white">
               <div className="absolute inset-0 bg-stone-950" />
               <div className="absolute inset-0 opacity-34">
-                <MuxBackgroundVideo playbackId={DASHBOARD_HERO_PLAYBACK_ID} />
+                <DeferredMuxBackgroundVideo
+                  playbackId={DASHBOARD_HERO_PLAYBACK_ID}
+                />
               </div>
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,10,9,0.96)_0%,rgba(12,10,9,0.7)_50%,rgba(12,10,9,0.9)_100%)]" />
               <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-stone-950 to-transparent" />

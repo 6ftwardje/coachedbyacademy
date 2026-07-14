@@ -67,11 +67,33 @@ The production build reports `327 kB` First Load JS for `/dashboard`, compared
 with `115 kB` for `/modules`. This is the first concrete optimization target for
 step 2.
 
-Authenticated routes are intentionally not included until a dedicated test
-student is available. The public Supabase endpoint currently terminates at the
-Cloudflare Brussels edge (`BRU`), but that does not reveal the database origin
-region. Netlify CLI access and the Supabase dashboard are required to verify the
-two compute regions conclusively.
+The first run covered only public routes while the dedicated test student was
+being prepared. The authenticated follow-up and verified compute regions are
+recorded below.
+
+### Authenticated baseline
+
+Measured on 2026-07-14 with a dedicated test student and five fresh Chromium
+contexts per route:
+
+| Route | TTFB p50 / p95 | LCP p50 / p95 | JS transferred | Requests |
+| --- | ---: | ---: | ---: | ---: |
+| `/dashboard` | 856 / 1854 ms | 2668 / 3288 ms | 396.5 kB | 43-44 |
+| `/modules` | 807 / 848 ms | 1532 / 1592 ms | 116.2 kB | 22 |
+| `/account` | 604 / 761 ms | 680 / 840 ms | 116.1 kB | 16 |
+| `/modules/program-design` | 620 / 724 ms | 1500 / 1824 ms | 116.2 kB | 28 |
+| `/lessons/les-1-2` | 655 / 1457 ms | 1896 / 2456 ms | 397.3 kB | 41-42 |
+
+The raw report is generated under `output/performance/` and remains local because
+it can contain student-specific route slugs.
+
+### Infrastructure finding
+
+Supabase database compute is in AWS `eu-west-1` (Ireland), while Netlify reports
+the site's Functions region as `us-east-2` (Ohio). Every authenticated page makes
+multiple Supabase calls, so the cross-Atlantic roundtrips amplify TTFB. The target
+Netlify Functions region is `dub` (Ireland); this setting is available on Netlify
+Pro and Enterprise and requires a redeploy.
 
 ## Exit criteria
 

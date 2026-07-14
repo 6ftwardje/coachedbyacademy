@@ -8,10 +8,12 @@ export function MuxVideoPlayer({
   playbackId,
   title,
   onEnded,
+  autoPlay = false,
 }: {
   playbackId: string;
   title?: string;
   onEnded?: (() => void) | null;
+  autoPlay?: boolean;
 }) {
   return (
     <MuxPlayer
@@ -22,6 +24,7 @@ export function MuxVideoPlayer({
       secondaryColor="#0c0a09"
       accentColor={COACHEDBY_RED}
       onEnded={onEnded ?? undefined}
+      autoPlay={autoPlay}
       streamType="on-demand"
     />
   );

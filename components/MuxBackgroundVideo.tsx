@@ -24,7 +24,7 @@ export function MuxBackgroundVideo({
       muted
       loop
       playsInline
-      preload="auto"
+      preload="metadata"
       aria-hidden="true"
       tabIndex={-1}
       className="block h-full w-full origin-center translate-x-[6%] scale-[1.38] object-cover"
