@@ -18,7 +18,39 @@ function isProtectedPath(pathname: string) {
   );
 }
 
+function getInviteConfirmationRedirect(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+  let inviteParams: URLSearchParams | null = null;
+
+  if (pathname === "/" && searchParams.has("token_hash")) {
+    inviteParams = searchParams;
+  } else if (pathname.startsWith("/&token_hash=") && !request.nextUrl.search) {
+    inviteParams = new URLSearchParams(pathname.slice(2));
+  }
+
+  const tokenHash = inviteParams?.get("token_hash") ?? "";
+  if (
+    inviteParams?.get("type") !== "invite" ||
+    !/^[A-Za-z0-9_-]{20,256}$/.test(tokenHash)
+  ) {
+    return null;
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = "/auth/confirm";
+  url.search = "";
+  url.searchParams.set("token_hash", tokenHash);
+  url.searchParams.set("type", "invite");
+  url.searchParams.set("next", "/account/update-password");
+  return url;
+}
+
 export async function updateSession(request: NextRequest) {
+  const inviteConfirmationUrl = getInviteConfirmationRedirect(request);
+  if (inviteConfirmationUrl) {
+    return NextResponse.redirect(inviteConfirmationUrl);
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

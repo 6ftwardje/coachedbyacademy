@@ -79,10 +79,16 @@ Je toegang tot CoachedBy Academy
 docs/supabase-invite-email-template.html
 ```
 
-De template gebruikt `{{ .RedirectTo }}`, `{{ .TokenHash }}` en `type=invite`.
-Daarom moet de app bij het versturen van invites een redirect naar
-`/auth/confirm?next=/account/update-password` meegeven, en die URL moet in de
-Redirect URLs allowlist staan.
+De template gebruikt `{{ .SiteURL }}` en `{{ .TokenHash }}` om altijd rechtstreeks
+naar `/auth/confirm` te linken. Zo blijft de uitnodiging werken wanneer Supabase
+een niet-toegestane `redirectTo` vervangt door de Site URL. De app geeft daarnaast
+een redirect naar `/auth/confirm?next=/account/update-password` mee; houd daarom
+ook de productie- en previewvarianten van `/auth/confirm**` in de Redirect URLs
+allowlist.
+
+De middleware herkent oudere, fout opgebouwde links met
+`/&token_hash=...&type=invite` en stuurt ze door naar `/auth/confirm`. Dit vangnet
+kan worden verwijderd nadat alle uitnodigingen met de oude template zijn verlopen.
 
 ## 4. Database-migraties toepassen
 

@@ -27,6 +27,10 @@ tsconfig.tsbuildinfo
 
 # Testing
 coverage/
+output/
+playwright-report/
+test-results/
+.playwright-cli/
 
 # Misc
 *.log

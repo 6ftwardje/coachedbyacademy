@@ -1,0 +1,37 @@
+import { expect, test } from "@playwright/test";
+
+test("login page exposes the expected authentication controls", async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("heading", { name: "Groei verder als coach." })
+  ).toBeVisible();
+  await expect(page.getByLabel("E-mailadres")).toBeVisible();
+  await expect(page.getByLabel("Wachtwoord")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Inloggen", exact: true })).toHaveCount(2);
+
+  expect(
+    consoleErrors.filter((message) => !message.includes("favicon.ico"))
+  ).toEqual([]);
+});
+
+test("protected routes redirect anonymous visitors to login", async ({ page }) => {
+  await page.goto("/dashboard");
+
+  await expect(page).toHaveURL(/\/\?redirectedFrom=%2Fdashboard$/);
+  await expect(page.getByRole("heading", { name: "Welkom terug" })).toBeVisible();
+});
+
+test("legacy malformed invite links reach the confirmation handler", async ({ page }) => {
+  const tokenHash = "a".repeat(64);
+
+  await page.goto(`/&token_hash=${tokenHash}&type=invite`);
+
+  await expect(page).toHaveURL(/\/\?error=auth$/);
+  await expect(page.getByRole("heading", { name: "Welkom terug" })).toBeVisible();
+});
