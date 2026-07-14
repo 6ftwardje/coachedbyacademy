@@ -1,6 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { timeAsync } from "@/lib/perf";
+import { VERIFIED_AUTH_USER_ID_HEADER } from "@/lib/supabase/auth-context";
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Record<string, unknown>;
+};
 
 function hasSupabaseAuthCookie(request: NextRequest) {
   return request.cookies
@@ -51,9 +58,19 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(inviteConfirmationUrl);
   }
 
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(VERIFIED_AUTH_USER_ID_HEADER);
+  let refreshedCookies: CookieToSet[] = [];
   let supabaseResponse = NextResponse.next({
-    request,
+    request: { headers: requestHeaders },
   });
+
+  const applyRefreshedCookies = <T extends NextResponse>(response: T): T => {
+    refreshedCookies.forEach(({ name, value, options }) =>
+      response.cookies.set(name, value, options)
+    );
+    return response;
+  };
 
   // In test environment mogen we niet terugvallen naar `/`.
   // Zo kunnen we de UI/flow testen zonder echte Supabase sessies.
@@ -98,6 +115,7 @@ export async function updateSession(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        refreshedCookies = cookiesToSet;
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)
         );
@@ -115,14 +133,21 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
-    return NextResponse.redirect(url);
+    return applyRefreshedCookies(NextResponse.redirect(url));
   }
 
   if (protectedPath && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.searchParams.set("redirectedFrom", pathname);
-    return NextResponse.redirect(url);
+    return applyRefreshedCookies(NextResponse.redirect(url));
+  }
+
+  if (user) {
+    requestHeaders.set(VERIFIED_AUTH_USER_ID_HEADER, user.id);
+    supabaseResponse = applyRefreshedCookies(
+      NextResponse.next({ request: { headers: requestHeaders } })
+    );
   }
 
   return supabaseResponse;

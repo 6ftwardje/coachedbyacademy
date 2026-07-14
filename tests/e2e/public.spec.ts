@@ -27,6 +27,19 @@ test("protected routes redirect anonymous visitors to login", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Welkom terug" })).toBeVisible();
 });
 
+test("internal auth context cannot be supplied by a visitor", async ({
+  page,
+}) => {
+  await page.setExtraHTTPHeaders({
+    "x-coachedby-verified-auth-user-id":
+      "00000000-0000-4000-8000-000000000001",
+  });
+  await page.goto("/dashboard");
+
+  await expect(page).toHaveURL(/\/\?redirectedFrom=%2Fdashboard$/);
+  await expect(page.getByRole("heading", { name: "Welkom terug" })).toBeVisible();
+});
+
 test("legacy malformed invite links stay on the public origin", async ({
   page,
   baseURL,
