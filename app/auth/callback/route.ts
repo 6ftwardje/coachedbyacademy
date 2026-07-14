@@ -1,8 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getRequestOrigin } from "@/lib/request-origin";
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams } = requestUrl;
+  const origin = getRequestOrigin(request.headers, requestUrl.origin);
   const code = searchParams.get("code");
   const requestedNext = searchParams.get("next");
   const next =
@@ -16,9 +19,10 @@ export async function GET(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const isTestEnv = process.env.NODE_ENV === "test";
 
-  const redirectToNext = () => NextResponse.redirect(`${origin}${next}`);
+  const redirectToNext = () =>
+    NextResponse.redirect(new URL(next, origin ?? requestUrl.origin));
   const redirectToLogin = () =>
-    NextResponse.redirect(`${origin}/?error=auth`);
+    NextResponse.redirect(new URL("/?error=auth", origin ?? requestUrl.origin));
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return isTestEnv ? redirectToNext() : redirectToLogin();

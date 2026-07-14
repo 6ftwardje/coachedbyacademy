@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { getRequestOrigin } from "@/lib/request-origin";
 
 function getSafeNext(value: string | null) {
   if (!value?.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
@@ -11,7 +12,9 @@ function getSafeNext(value: string | null) {
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams } = requestUrl;
+  const origin = getRequestOrigin(request.headers, requestUrl.origin);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = getSafeNext(searchParams.get("next"));
@@ -20,9 +23,10 @@ export async function GET(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const isTestEnv = process.env.NODE_ENV === "test";
 
-  const redirectToNext = () => NextResponse.redirect(`${origin}${next}`);
+  const redirectToNext = () =>
+    NextResponse.redirect(new URL(next, origin ?? requestUrl.origin));
   const redirectToLogin = () =>
-    NextResponse.redirect(`${origin}/?error=auth`);
+    NextResponse.redirect(new URL("/?error=auth", origin ?? requestUrl.origin));
 
   if (!supabaseUrl || !supabaseAnonKey || !tokenHash || !type) {
     return isTestEnv ? redirectToNext() : redirectToLogin();

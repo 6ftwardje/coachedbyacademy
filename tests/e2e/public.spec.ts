@@ -27,11 +27,15 @@ test("protected routes redirect anonymous visitors to login", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Welkom terug" })).toBeVisible();
 });
 
-test("legacy malformed invite links reach the confirmation handler", async ({ page }) => {
+test("legacy malformed invite links stay on the public origin", async ({
+  page,
+  baseURL,
+}) => {
   const tokenHash = "a".repeat(64);
 
   await page.goto(`/&token_hash=${tokenHash}&type=invite`);
 
   await expect(page).toHaveURL(/\/\?error=auth$/);
+  expect(new URL(page.url()).origin).toBe(new URL(baseURL!).origin);
   await expect(page.getByRole("heading", { name: "Welkom terug" })).toBeVisible();
 });

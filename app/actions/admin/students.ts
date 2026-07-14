@@ -9,28 +9,7 @@ import {
   updateStudentAccessLevelAdmin,
 } from "@/lib/admin/students";
 import { logAdminAction } from "@/lib/admin/audit";
-
-function getRequestOrigin(headersList: Headers) {
-  const origin = headersList.get("origin");
-  if (origin) return origin;
-
-  const forwardedProto = headersList.get("x-forwarded-proto");
-  const forwardedHost = headersList.get("x-forwarded-host") ?? headersList.get("host");
-  if (forwardedProto && forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  const referer = headersList.get("referer");
-  if (referer) {
-    try {
-      return new URL(referer).origin;
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
+import { getRequestOrigin } from "@/lib/request-origin";
 
 function buildInviteRedirectTo(origin: string) {
   const confirmUrl = new URL("/auth/confirm", origin);
