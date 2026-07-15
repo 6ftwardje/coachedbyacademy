@@ -13,6 +13,7 @@ export function LessonAutoCompleteVideo({
   muxPlaybackPolicy,
   title,
   isCompleted,
+  deferMuxUntilPlay = false,
 }: {
   lessonId: number;
   videoUrl: string | null;
@@ -21,6 +22,7 @@ export function LessonAutoCompleteVideo({
   muxPlaybackPolicy?: "public" | "signed";
   title?: string;
   isCompleted: boolean;
+  deferMuxUntilPlay?: boolean;
 }) {
   const router = useRouter();
   const didMarkRef = useRef(false);
@@ -52,6 +54,7 @@ export function LessonAutoCompleteVideo({
         muxPlaybackPolicy={muxPlaybackPolicy}
         title={title}
         onEnded={handleEnded}
+        deferMuxUntilPlay={deferMuxUntilPlay}
       />
       {marking ? (
         <div className="pointer-events-none absolute inset-0 flex items-end justify-start p-4">

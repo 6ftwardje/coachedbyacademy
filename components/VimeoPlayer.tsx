@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { extractVimeoId, getVimeoEmbedUrl } from "@/lib/vimeo";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const MuxVideoPlayer = dynamic(
   () => import("@/components/MuxVideoPlayer").then((mod) => mod.MuxVideoPlayer),
@@ -23,6 +23,7 @@ type Props = {
   muxPlaybackPolicy?: "public" | "signed";
   title?: string;
   onEnded?: (() => void) | null;
+  deferMuxUntilPlay?: boolean;
 };
 
 function extractMuxPlaybackId(
@@ -49,7 +50,9 @@ export function VimeoPlayer({
   muxPlaybackPolicy = "public",
   title,
   onEnded = null,
+  deferMuxUntilPlay = false,
 }: Props) {
+  const [muxStarted, setMuxStarted] = useState(false);
   const muxId =
     videoProvider === "mux" ? extractMuxPlaybackId(videoUrl, muxPlaybackId) : null;
   const canUseVimeo =
@@ -117,12 +120,42 @@ export function VimeoPlayer({
   }, [onEnded, shouldListen, videoId]);
 
   if (muxId && muxPlaybackPolicy === "public") {
+    if (deferMuxUntilPlay && !muxStarted) {
+      const posterUrl = `https://image.mux.com/${encodeURIComponent(
+        muxId
+      )}/thumbnail.webp?time=1&width=1280&fit_mode=smartcrop`;
+
+      return (
+        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[color-mix(in_oklab,#f50101_34%,var(--border)_66%)] bg-stone-950 shadow-[0_0_0_1px_rgba(245,1,1,0.06),0_16px_42px_rgba(28,25,23,0.14)]">
+          <button
+            type="button"
+            onClick={() => setMuxStarted(true)}
+            className="group relative flex h-full w-full items-center justify-center overflow-hidden bg-cover bg-center text-white"
+            style={{ backgroundImage: `url("${posterUrl}")` }}
+            aria-label={`Speel ${title ?? "lesvideo"}`}
+          >
+            <span className="absolute inset-0 bg-stone-950/35 transition-colors group-hover:bg-stone-950/25" />
+            <span className="relative flex flex-col items-center gap-3">
+              <span
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-white/35 bg-white text-xl text-stone-950 shadow-lg transition-transform group-hover:scale-105"
+                aria-hidden="true"
+              >
+                ▶
+              </span>
+              <span className="text-sm font-bold">Lesvideo afspelen</span>
+            </span>
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[color-mix(in_oklab,#f50101_34%,var(--border)_66%)] bg-stone-950 shadow-[0_0_0_1px_rgba(245,1,1,0.06),0_16px_42px_rgba(28,25,23,0.14)]">
         <MuxVideoPlayer
           playbackId={muxId}
           title={title}
           onEnded={onEnded ?? undefined}
+          autoPlay={deferMuxUntilPlay}
         />
       </div>
     );

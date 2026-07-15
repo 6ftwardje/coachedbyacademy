@@ -36,6 +36,32 @@ test("student can open an available lesson without changing progress", async ({ 
   await expect(page.getByRole("navigation", { name: "Navigatie tussen lessen" })).toBeVisible();
 });
 
+test("lesson defers Mux media until the student starts the video", async ({
+  page,
+}) => {
+  await page.goto("/modules");
+  await page.locator('a[href^="/modules/"]').first().click();
+  await page.locator('a[href^="/lessons/"]').first().click();
+
+  const playLesson = page.getByRole("button", { name: /^Speel .+/ });
+  await expect(playLesson).toBeVisible();
+
+  const resourcesBeforePlay = await page.evaluate(() =>
+    performance.getEntriesByType("resource").map((entry) => entry.name)
+  );
+  expect(resourcesBeforePlay.filter(isMuxMediaRequest)).toEqual([]);
+
+  await playLesson.click();
+  await expect
+    .poll(async () => {
+      const resources = await page.evaluate(() =>
+        performance.getEntriesByType("resource").map((entry) => entry.name)
+      );
+      return resources.filter(isMuxMediaRequest).length;
+    })
+    .toBeGreaterThan(0);
+});
+
 test("dashboard defers Mux media until the student starts the intro", async ({
   page,
 }) => {

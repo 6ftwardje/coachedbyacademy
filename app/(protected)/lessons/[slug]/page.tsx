@@ -156,6 +156,8 @@ export default async function LessonPage({ params }: Props) {
   const lessonNotes = asText(lesson.description);
   const lessonTakeaway = asText(lesson.takeaway);
   const lessonActions = normalizeLessonActions(lesson.action_items);
+  const deferMuxUntilPlay =
+    process.env.PROJECT_SPEED_DEFER_LESSON_MUX === "on";
   const actionProgress =
     canAccess && lessonActions.length > 0
       ? await getLessonActionProgress(student.id, lesson.id)
@@ -242,6 +244,7 @@ export default async function LessonPage({ params }: Props) {
               muxPlaybackId={lesson.mux_playback_id}
               muxPlaybackPolicy={lesson.mux_playback_policy}
               title={lesson.title}
+              deferMuxUntilPlay={deferMuxUntilPlay}
             />
           ) : (
             <LessonAutoCompleteVideo
@@ -252,6 +255,7 @@ export default async function LessonPage({ params }: Props) {
               muxPlaybackPolicy={lesson.mux_playback_policy}
               title={lesson.title}
               isCompleted={isCompleted}
+              deferMuxUntilPlay={deferMuxUntilPlay}
             />
           )}
         </div>
