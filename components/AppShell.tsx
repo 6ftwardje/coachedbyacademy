@@ -78,9 +78,11 @@ function getNavItems(showAdminNav: boolean) {
 
 function SidebarContent({
   showAdminNav,
+  asyncAdminNav,
   onNavigate,
 }: {
   showAdminNav: boolean;
+  asyncAdminNav?: React.ReactNode;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -109,7 +111,24 @@ function SidebarContent({
         className="mt-8 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain"
         aria-label="Hoofdnavigatie"
       >
-        {nav.map((item) => {
+        {nav.slice(0, showAdminNav ? 3 : 2).map((item) => {
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          return (
+            <SidebarNavItem
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              active={isActive}
+              icon={item.icon}
+              onNavigate={onNavigate}
+              reloadDocument={item.href.startsWith("/admin")}
+            />
+          );
+        })}
+        {asyncAdminNav}
+        {nav.slice(showAdminNav ? 3 : 2).map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -153,11 +172,13 @@ export function AppShell({
   children,
   studentName,
   showAdminNav = false,
+  asyncAdminNav,
 }: {
   children: React.ReactNode;
   studentName: string | null;
   /** When true, show Admin in the main nav (access level 3 — set by server layout). */
   showAdminNav?: boolean;
+  asyncAdminNav?: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -188,6 +209,7 @@ export function AppShell({
         <div className="flex h-full min-h-0 flex-col px-5 py-7">
           <SidebarContent
             showAdminNav={showAdminNav}
+            asyncAdminNav={asyncAdminNav}
             onNavigate={() => setMobileOpen(false)}
           />
         </div>
@@ -218,6 +240,7 @@ export function AppShell({
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-6">
               <SidebarContent
                 showAdminNav={showAdminNav}
+                asyncAdminNav={asyncAdminNav}
                 onNavigate={() => setMobileOpen(false)}
               />
             </div>
