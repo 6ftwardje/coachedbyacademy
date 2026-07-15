@@ -35,3 +35,26 @@ then completed in 1-5 ms.
 | `/lessons/les-1-2` | 71.1 ms | 8.7 ms |
 
 All nine browser checks pass with local claim verification enabled.
+
+## Production result
+
+A targeted 15-run dashboard A/B on the same commit measured:
+
+| Mode | TTFB p50 | Slowest run |
+| --- | ---: | ---: |
+| Auth server `getUser` | 748.4 ms | 973.5 ms |
+| Local `getClaims` | 725.3 ms | 841.7 ms |
+
+The controlled result improves median TTFB by 3% and the slowest observed run
+by 14%. A separate five-run full-route follow-up measured these TTFB medians:
+
+| Route | TTFB p50 |
+| --- | ---: |
+| `/dashboard` | 507.2 ms |
+| `/modules` | 570.6 ms |
+| `/account` | 596.5 ms |
+| `/modules/program-design` | 611.4 ms |
+| `/lessons/les-1-2` | 435.9 ms |
+
+All nine production browser checks pass. Production keeps
+`PROJECT_SPEED_LOCAL_AUTH_CLAIMS=on`.
