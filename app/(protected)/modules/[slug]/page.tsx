@@ -14,15 +14,29 @@ import { ContentSection } from "@/components/layout/ContentSection";
 import { LessonStatusBadge } from "@/components/StatusBadge";
 import { CourseThumbnail } from "@/components/CourseThumbnail";
 import { asText } from "@/lib/as-text";
+import { timeAsync } from "@/lib/perf";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function ModuleDetailPage({ params }: Props) {
   const { slug } = await params;
-  const moduleData = await getModuleBySlug(slug);
-  if (!moduleData) notFound();
+  const parallelDetailReads =
+    process.env.PROJECT_SPEED_PARALLEL_DETAIL_READS === "on";
+  const { student, moduleData } = parallelDetailReads
+    ? await timeAsync("[perf] module.detail.identity", async () => {
+        const [studentResult, moduleData] = await Promise.all([
+          ensureCurrentStudent(),
+          getModuleBySlug(slug),
+        ]);
+        return { student: studentResult.student, moduleData };
+      })
+    : await (async () => {
+        const moduleData = await getModuleBySlug(slug);
+        const { student } = await ensureCurrentStudent();
+        return { student, moduleData };
+      })();
 
-  const { student } = await ensureCurrentStudent();
+  if (!moduleData) notFound();
   if (!student) notFound();
 
   const [lessons, allModules, exam] = await Promise.all([
@@ -31,13 +45,21 @@ export default async function ModuleDetailPage({ params }: Props) {
     getExamByModuleId(moduleData.id),
   ]);
 
-  const statusMap = await getLessonStatuses(student.id, lessons);
+  const [statusMap, moduleAccessMap, hasPassedThisExam] = parallelDetailReads
+    ? await timeAsync("[perf] module.detail.student-state", () =>
+        Promise.all([
+          getLessonStatuses(student.id, lessons),
+          getModuleAccessMap(student.id, allModules),
+          exam ? hasPassedExam(student.id, exam.id) : Promise.resolve(false),
+        ])
+      )
+    : [
+        await getLessonStatuses(student.id, lessons),
+        await getModuleAccessMap(student.id, allModules),
+        exam ? await hasPassedExam(student.id, exam.id) : false,
+      ];
   const lessonsWithStatusList = lessonsWithStatus(lessons, statusMap);
-  const moduleAccessMap = await getModuleAccessMap(student.id, allModules);
   const canAccessModule = moduleAccessMap.get(moduleData.id) === true;
-  const hasPassedThisExam = exam
-    ? await hasPassedExam(student.id, exam.id)
-    : false;
   const allLessonsCompleted = lessons.every((l) => statusMap.get(l.id) === "completed");
   const examUnlocked = !!exam && allLessonsCompleted;
 

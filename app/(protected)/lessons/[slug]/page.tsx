@@ -20,6 +20,7 @@ import {
   normalizeLessonActions,
 } from "@/lib/lesson-actions";
 import type { LessonStatus } from "@/lib/types";
+import { timeAsync } from "@/lib/perf";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -115,27 +116,88 @@ function LessonRailRow({
 
 export default async function LessonPage({ params }: Props) {
   const { slug } = await params;
-  const lesson = await getLessonBySlug(slug);
-  if (!lesson) notFound();
+  const parallelDetailReads =
+    process.env.PROJECT_SPEED_PARALLEL_DETAIL_READS === "on";
+  const { student, lesson } = parallelDetailReads
+    ? await timeAsync("[perf] lesson.detail.identity", async () => {
+        const [studentResult, lesson] = await Promise.all([
+          ensureCurrentStudent(),
+          getLessonBySlug(slug),
+        ]);
+        return { student: studentResult.student, lesson };
+      })
+    : await (async () => {
+        const lesson = await getLessonBySlug(slug);
+        const { student } = await ensureCurrentStudent();
+        return { student, lesson };
+      })();
 
-  const { student } = await ensureCurrentStudent();
+  if (!lesson) notFound();
   if (!student) notFound();
 
-  const canAccessLessonModule = await canStudentAccessModule(
-    student.id,
-    lesson.module_id
-  );
+  const courseData = parallelDetailReads
+    ? await timeAsync("[perf] lesson.detail.course", async () => {
+        const [canAccessLessonModule, allLessons, moduleData, exam] =
+          await Promise.all([
+            canStudentAccessModule(student.id, lesson.module_id),
+            getPublishedLessonsByModuleId(lesson.module_id),
+            getModuleById(lesson.module_id),
+            getExamByModuleId(lesson.module_id),
+          ]);
+        return {
+          canAccessLessonModule,
+          allLessons,
+          moduleData,
+          exam,
+          progressMap: null,
+        };
+      })
+    : await (async () => {
+        const canAccessLessonModule = await canStudentAccessModule(
+          student.id,
+          lesson.module_id
+        );
+        const allLessons = await getPublishedLessonsByModuleId(
+          lesson.module_id
+        );
+        const [moduleData, progressMap, exam] = await Promise.all([
+          getModuleById(lesson.module_id),
+          getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
+          getExamByModuleId(lesson.module_id),
+        ]);
+        return {
+          canAccessLessonModule,
+          allLessons,
+          moduleData,
+          exam,
+          progressMap,
+        };
+      })();
+  const {
+    canAccessLessonModule,
+    allLessons,
+    moduleData,
+    exam,
+  } = courseData;
+
   if (!canAccessLessonModule) notFound();
-
-  const allLessons = await getPublishedLessonsByModuleId(lesson.module_id);
-  const [moduleData, progressMap, exam] = await Promise.all([
-    getModuleById(lesson.module_id),
-    getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
-    getExamByModuleId(lesson.module_id),
-  ]);
-  const statusMap = getLessonStatusesFromProgress(allLessons, progressMap);
-
   if (!moduleData) notFound();
+
+  const lessonActions = normalizeLessonActions(lesson.action_items);
+  const [progressMap, prefetchedActionProgress] = parallelDetailReads
+    ? await timeAsync("[perf] lesson.detail.student-state", () =>
+        Promise.all([
+          getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
+          lessonActions.length > 0
+            ? getLessonActionProgress(student.id, lesson.id)
+            : Promise.resolve(new Map<number, boolean>()),
+        ])
+      )
+    : [
+        courseData.progressMap!,
+        null,
+      ];
+  const statusMap = getLessonStatusesFromProgress(allLessons, progressMap);
 
   const currentIndex = allLessons.findIndex((l) => l.id === lesson.id);
   const status = statusMap.get(lesson.id) ?? "locked";
@@ -155,11 +217,13 @@ export default async function LessonPage({ params }: Props) {
   const examAvailable = !!exam && allLessonsCompleted;
   const lessonNotes = asText(lesson.description);
   const lessonTakeaway = asText(lesson.takeaway);
-  const lessonActions = normalizeLessonActions(lesson.action_items);
   const deferMuxUntilPlay =
     process.env.PROJECT_SPEED_DEFER_LESSON_MUX === "on";
-  const actionProgress =
-    canAccess && lessonActions.length > 0
+  const actionProgress = parallelDetailReads
+    ? canAccess
+      ? prefetchedActionProgress ?? new Map<number, boolean>()
+      : new Map<number, boolean>()
+    : canAccess && lessonActions.length > 0
       ? await getLessonActionProgress(student.id, lesson.id)
       : new Map<number, boolean>();
 
