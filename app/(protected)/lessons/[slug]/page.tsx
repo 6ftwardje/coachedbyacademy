@@ -19,8 +19,15 @@ import {
   getLessonActionProgress,
   normalizeLessonActions,
 } from "@/lib/lesson-actions";
-import type { LessonStatus } from "@/lib/types";
+import type { Exam, Lesson, LessonStatus, Module } from "@/lib/types";
 import { timeAsync } from "@/lib/perf";
+import { getStudentLessonDetailData } from "@/lib/lesson-detail-data";
+import {
+  buildCourseModuleAccessMap,
+  getCourseExamMap,
+  getCourseProgressMap,
+  getStudentAccessScope,
+} from "@/lib/student-course-data";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -114,8 +121,67 @@ function LessonRailRow({
   );
 }
 
-export default async function LessonPage({ params }: Props) {
-  const { slug } = await params;
+type LessonPageReadData = {
+  studentId: string;
+  lesson: Lesson;
+  allLessons: Lesson[];
+  moduleData: Module;
+  exam: Exam | null;
+  progressMap: Map<number, { watched: boolean; watched_at: string | null }>;
+  actionProgress: Map<number, boolean>;
+};
+
+async function loadLessonPageDataFromRpc(
+  slug: string
+): Promise<LessonPageReadData | null> {
+  const payload = await timeAsync("[perf] lesson.detail.rpc", () =>
+    getStudentLessonDetailData(slug)
+  );
+  if (!payload) return null;
+
+  const { course, lesson, studentId } = payload;
+  const accessScope = getStudentAccessScope(course);
+  const passedExamIds = new Set(course.passedExamIds.map(Number));
+  const moduleAccessMap = buildCourseModuleAccessMap(
+    course.modules,
+    accessScope,
+    course.exams,
+    passedExamIds
+  );
+  const moduleData = course.modules.find(
+    (courseModule) => courseModule.id === lesson.module_id
+  );
+  const allLessons = course.lessons.filter(
+    (courseLesson) => courseLesson.module_id === lesson.module_id
+  );
+
+  if (
+    !moduleData ||
+    moduleAccessMap.get(moduleData.id) !== true ||
+    !allLessons.some((courseLesson) => courseLesson.id === lesson.id)
+  ) {
+    return null;
+  }
+
+  return {
+    studentId,
+    lesson,
+    allLessons,
+    moduleData,
+    exam: getCourseExamMap(course.exams).get(moduleData.id) ?? null,
+    progressMap: getCourseProgressMap(course.progress),
+    actionProgress: new Map(
+      payload.actionProgress.map((item) => [
+        Number(item.action_index),
+        item.completed === true,
+      ])
+    ),
+  };
+}
+
+async function loadLessonPageDataLegacy(
+  slug: string
+): Promise<LessonPageReadData | null> {
   const parallelDetailReads =
     process.env.PROJECT_SPEED_PARALLEL_DETAIL_READS === "on";
   const { student, lesson } = parallelDetailReads
@@ -132,8 +198,7 @@ export default async function LessonPage({ params }: Props) {
         return { student, lesson };
       })();
 
-  if (!lesson) notFound();
-  if (!student) notFound();
+  if (!lesson || !student) return null;
 
   const courseData = parallelDetailReads
     ? await timeAsync("[perf] lesson.detail.course", async () => {
@@ -162,7 +227,7 @@ export default async function LessonPage({ params }: Props) {
         );
         const [moduleData, progressMap, exam] = await Promise.all([
           getModuleById(lesson.module_id),
-          getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
+          getProgressByLessonIds(student.id, allLessons.map((item) => item.id)),
           getExamByModuleId(lesson.module_id),
         ]);
         return {
@@ -173,30 +238,75 @@ export default async function LessonPage({ params }: Props) {
           progressMap,
         };
       })();
-  const {
-    canAccessLessonModule,
-    allLessons,
-    moduleData,
-    exam,
-  } = courseData;
 
-  if (!canAccessLessonModule) notFound();
-  if (!moduleData) notFound();
+  if (!courseData.canAccessLessonModule || !courseData.moduleData) return null;
 
   const lessonActions = normalizeLessonActions(lesson.action_items);
   const [progressMap, prefetchedActionProgress] = parallelDetailReads
     ? await timeAsync("[perf] lesson.detail.student-state", () =>
         Promise.all([
-          getProgressByLessonIds(student.id, allLessons.map((l) => l.id)),
+          getProgressByLessonIds(
+            student.id,
+            courseData.allLessons.map((item) => item.id)
+          ),
           lessonActions.length > 0
             ? getLessonActionProgress(student.id, lesson.id)
             : Promise.resolve(new Map<number, boolean>()),
         ])
       )
-    : [
-        courseData.progressMap!,
-        null,
-      ];
+    : [courseData.progressMap!, null];
+  const statusMap = getLessonStatusesFromProgress(
+    courseData.allLessons,
+    progressMap
+  );
+  const status = statusMap.get(lesson.id) ?? "locked";
+  const canAccess = status === "available" || status === "completed";
+  const actionProgress = parallelDetailReads
+    ? canAccess
+      ? prefetchedActionProgress ?? new Map<number, boolean>()
+      : new Map<number, boolean>()
+    : canAccess && lessonActions.length > 0
+      ? await getLessonActionProgress(student.id, lesson.id)
+      : new Map<number, boolean>();
+
+  return {
+    studentId: student.id,
+    lesson,
+    allLessons: courseData.allLessons,
+    moduleData: courseData.moduleData,
+    exam: courseData.exam,
+    progressMap,
+    actionProgress,
+  };
+}
+
+async function loadLessonPageData(
+  slug: string
+): Promise<LessonPageReadData | null> {
+  if (process.env.PROJECT_SPEED_LESSON_DETAIL_RPC === "on") {
+    try {
+      return await loadLessonPageDataFromRpc(slug);
+    } catch (error) {
+      console.error("loadLessonPageData.rpc", error);
+    }
+  }
+
+  return loadLessonPageDataLegacy(slug);
+}
+
+export default async function LessonPage({ params }: Props) {
+  const { slug } = await params;
+  const pageData = await loadLessonPageData(slug);
+  if (!pageData) notFound();
+
+  const {
+    lesson,
+    allLessons,
+    moduleData,
+    exam,
+    progressMap,
+    actionProgress,
+  } = pageData;
   const statusMap = getLessonStatusesFromProgress(allLessons, progressMap);
 
   const currentIndex = allLessons.findIndex((l) => l.id === lesson.id);
@@ -217,15 +327,9 @@ export default async function LessonPage({ params }: Props) {
   const examAvailable = !!exam && allLessonsCompleted;
   const lessonNotes = asText(lesson.description);
   const lessonTakeaway = asText(lesson.takeaway);
+  const lessonActions = normalizeLessonActions(lesson.action_items);
   const deferMuxUntilPlay =
     process.env.PROJECT_SPEED_DEFER_LESSON_MUX === "on";
-  const actionProgress = parallelDetailReads
-    ? canAccess
-      ? prefetchedActionProgress ?? new Map<number, boolean>()
-      : new Map<number, boolean>()
-    : canAccess && lessonActions.length > 0
-      ? await getLessonActionProgress(student.id, lesson.id)
-      : new Map<number, boolean>();
 
   if (!canAccess) {
     return (

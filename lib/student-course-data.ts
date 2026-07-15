@@ -124,7 +124,7 @@ export function buildCourseModuleAccessMap(
   return accessMap;
 }
 
-function isStudentCourseData(value: unknown): value is StudentCourseData {
+export function isStudentCourseData(value: unknown): value is StudentCourseData {
   if (!value || typeof value !== "object") return false;
   const payload = value as Record<string, unknown>;
   return (
