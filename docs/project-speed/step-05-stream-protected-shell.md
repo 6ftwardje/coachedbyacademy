@@ -24,9 +24,30 @@ Verified locally in production mode on 2026-07-15:
 - Dashboard TTFB p50 decreased from approximately 144 ms to 62 ms over ten
   local runs.
 
-The production blocking-layout reference is 473 ms p50 over 15 fresh dashboard
-contexts. The flag remains active only if the equivalent production streaming
-run improves this result without functional regressions.
+The targeted production A/B used 15 fresh dashboard contexts per mode:
+
+| Mode | TTFB p50 | Slowest run |
+| --- | ---: | ---: |
+| Blocking layout | 473 ms | 681 ms |
+| Streaming layout | 404 ms | 3070 ms |
+
+Streaming improves normal TTFB by approximately 15%. One Netlify or upstream
+cold-start outlier remains; streaming reduces the common wait but does not
+eliminate infrastructure spikes.
+
+The five-run full-route follow-up with streaming enabled measured:
+
+| Route | TTFB p50 | LCP p50 |
+| --- | ---: | ---: |
+| `/dashboard` | 409 ms | 620 ms |
+| `/modules` | 408 ms | 572 ms |
+| `/account` | 459 ms | 536 ms |
+| `/modules/program-design` | 439 ms | 640 ms |
+| `/lessons/les-1-2` | 382 ms | 868 ms |
+
+The streamed response adds one RSC request and approximately 20 kB of transfer
+per route. It does not add browser console errors or client-side layout shift.
+Production keeps `PROJECT_SPEED_STREAM_PROTECTED_SHELL=on`.
 
 ## Exit criteria
 
