@@ -123,28 +123,42 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await timeAsync("[perf] middleware.auth.getUser", () =>
-    supabase.auth.getUser()
-  );
+  let verifiedUserId: string | null = null;
 
-  if (pathname === "/" && user) {
+  if (process.env.PROJECT_SPEED_LOCAL_AUTH_CLAIMS === "on") {
+    const { data, error } = await timeAsync(
+      "[perf] middleware.auth.getClaims",
+      () => supabase.auth.getClaims()
+    );
+    verifiedUserId =
+      !error && typeof data?.claims?.sub === "string"
+        ? data.claims.sub
+        : null;
+  } else {
+    const {
+      data: { user },
+    } = await timeAsync("[perf] middleware.auth.getUser", () =>
+      supabase.auth.getUser()
+    );
+    verifiedUserId = user?.id ?? null;
+  }
+
+  if (pathname === "/" && verifiedUserId) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
     return applyRefreshedCookies(NextResponse.redirect(url));
   }
 
-  if (protectedPath && !user) {
+  if (protectedPath && !verifiedUserId) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.searchParams.set("redirectedFrom", pathname);
     return applyRefreshedCookies(NextResponse.redirect(url));
   }
 
-  if (user) {
-    requestHeaders.set(VERIFIED_AUTH_USER_ID_HEADER, user.id);
+  if (verifiedUserId) {
+    requestHeaders.set(VERIFIED_AUTH_USER_ID_HEADER, verifiedUserId);
     supabaseResponse = applyRefreshedCookies(
       NextResponse.next({ request: { headers: requestHeaders } })
     );
