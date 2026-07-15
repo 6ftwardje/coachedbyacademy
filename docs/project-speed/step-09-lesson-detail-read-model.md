@@ -41,3 +41,22 @@ passed.
 - A production A/B confirms lower lesson completion timing or LCP.
 - Production only keeps `PROJECT_SPEED_LESSON_DETAIL_RPC=on` when the live
   result is faster.
+
+## Production result
+
+Production was measured legacy, RPC, then legacy again with 15 fresh browser
+contexts per round:
+
+| Mode | DOMContentLoaded p50 / p95 | LCP p50 / p95 |
+| --- | ---: | ---: |
+| Legacy 1 | 925 / 1570 ms | 1016 / 1660 ms |
+| Lesson RPC | 1136 / 2307 ms | 1224 / 2416 ms |
+| Legacy 2 | 988 / 2673 ms | 1076 / 2780 ms |
+
+The RPC is approximately 14% slower at median LCP than the average legacy
+result. Reusing the broad dashboard payload costs more in production than the
+saved roundtrips, so the production evidence rejects this read model.
+
+All nine production browser checks pass after restoring the selected legacy
+mode. Production keeps `PROJECT_SPEED_LESSON_DETAIL_RPC=off`. The authenticated
+RPC remains available behind the flag for a future, narrower payload design.
