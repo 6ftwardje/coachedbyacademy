@@ -31,3 +31,14 @@ per mode:
 
 The deferred mode removes approximately 70% of initial lesson JavaScript and
 13 requests. Lesson TTFB stayed effectively unchanged at 69 ms in both modes.
+
+## Production result
+
+The five-run production follow-up measured 120.1 kB of initial JavaScript and
+30 requests on `/lessons/les-1-2`. The previous phase measured 397.2 kB and 43
+requests on the same route. This confirms a 70% JavaScript reduction in
+production. LCP remained effectively stable at 880 ms versus 868 ms before the
+change.
+
+All nine read-only production browser checks pass with
+`PROJECT_SPEED_DEFER_LESSON_MUX=on`.
