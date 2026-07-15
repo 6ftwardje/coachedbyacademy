@@ -36,3 +36,22 @@ per route:
 Parallel loading improves module LCP by 26% and lesson LCP by 10%. Both modes
 produce identical SHA-256 hashes for all visible text and links. All nine
 browser checks pass with parallel loading enabled.
+
+## Production result
+
+Production was measured sequential, parallel, then sequential again with 15
+fresh browser contexts per route and mode:
+
+| Route | Sequential 1 LCP p50 | Parallel LCP p50 | Sequential 2 LCP p50 |
+| --- | ---: | ---: | ---: |
+| Module detail | 1224 ms | 1292 ms | 1204 ms |
+| Lesson detail | 632 ms | 732 ms | 992 ms |
+
+Module detail was consistently slower in parallel mode. Lesson timing varied
+substantially between rounds and did not show a repeatable improvement. The
+production evidence therefore rejects this optimization despite the local
+result. Production keeps `PROJECT_SPEED_PARALLEL_DETAIL_READS=off`.
+
+The parallel implementation remains isolated behind the flag so its structured
+stage timings can support a future Supabase read-model experiment without
+changing current production behavior.
