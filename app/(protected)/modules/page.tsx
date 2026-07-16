@@ -66,13 +66,12 @@ export default async function ModulesPage() {
                   </div>
                 </Link>
               ) : (
-                <div className="h-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,var(--muted)_8%)] opacity-70">
+                <div className="h-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,var(--muted)_8%)]">
                   <CourseThumbnail
                     src={mod.thumbnail_url}
                     title={mod.title}
                     eyebrow={`Module ${mod.order_index}`}
                     className="aspect-[16/10] w-full"
-                    muted
                   />
                   <div className="flex min-h-[190px] flex-col p-5 sm:p-6">
                     <div className="min-w-0 flex-1">

@@ -26,7 +26,6 @@ function ModuleRow({ summary }: { summary: DashboardModuleSummary }) {
         eyebrow={`Module ${summary.module.order_index}`}
         className="aspect-[16/7] w-full sm:aspect-auto sm:h-full sm:min-h-[118px]"
         imageClassName={canOpen ? "group-hover:scale-[1.035]" : ""}
-        muted={!canOpen}
       />
       <div className="flex min-w-0 items-start justify-between gap-5 p-4 sm:p-5">
         <div className="min-w-0">
@@ -47,7 +46,7 @@ function ModuleRow({ summary }: { summary: DashboardModuleSummary }) {
     </div>
   );
 
-  if (!canOpen) return <li className="opacity-65">{content}</li>;
+  if (!canOpen) return <li>{content}</li>;
 
   return (
     <li>

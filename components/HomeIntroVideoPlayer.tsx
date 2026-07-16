@@ -40,14 +40,14 @@ export function HomeIntroVideoPlayer({
   if (!playing) {
     const posterUrl = `https://image.mux.com/${encodeURIComponent(
       playbackId
-    )}/thumbnail.webp?time=1&width=1280&fit_mode=smartcrop`;
+    )}/thumbnail.webp?time=1&width=1280&height=720&fit_mode=preserve`;
 
     return (
       <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-stone-950 shadow-[0_16px_42px_rgba(28,25,23,0.12)]">
         <button
           type="button"
           onClick={() => setPlaying(true)}
-          className="group relative flex h-full w-full items-center justify-center overflow-hidden bg-cover bg-center text-white"
+          className="group relative flex h-full w-full items-center justify-center overflow-hidden bg-contain bg-center bg-no-repeat text-white"
           style={{ backgroundImage: `url("${posterUrl}")` }}
           aria-label={`Speel ${title}`}
         >
