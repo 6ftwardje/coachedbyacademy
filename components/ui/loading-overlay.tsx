@@ -3,7 +3,7 @@
 import Image from "next/image";
 import type React from "react";
 import { useEffect, useState } from "react";
-import { ACADEMY_LOGO_SRC } from "@/lib/brand";
+import { PLATFORM_LOGO_SRC } from "@/lib/brand";
 
 const OVERLAY_MS = 260;
 
@@ -32,8 +32,8 @@ export function LoadingOverlay({ onComplete, children }: LoadingOverlayProps) {
         aria-hidden={!showOverlay}
       >
         <Image
-          src={ACADEMY_LOGO_SRC}
-          alt="CoachedBy Academy"
+          src={PLATFORM_LOGO_SRC}
+          alt="Coachedby Mentorship"
           width={220}
           height={64}
           className="h-8 w-auto max-w-[min(40vw,200px)] select-none sm:h-9"

@@ -1,4 +1,4 @@
-# CoachedBy Academy – Phase 2 Summary
+# Coachedby Mentorship – Phase 2 Summary
 
 ## Created and updated files
 

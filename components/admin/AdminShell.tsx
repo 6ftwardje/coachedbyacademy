@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarNavItem } from "@/components/SidebarNavItem";
 import { PageLoadOverlay } from "@/components/PageLoadOverlay";
-import { ACADEMY_LOGO_SRC } from "@/lib/brand";
+import { PLATFORM_LOGO_SRC } from "@/lib/brand";
 
 const adminNav = [
   {
@@ -92,8 +92,8 @@ function SidebarContent({
           className="inline-flex items-center gap-2 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_25%,transparent)]"
         >
           <Image
-            src={ACADEMY_LOGO_SRC}
-            alt="CoachedBy Academy"
+            src={PLATFORM_LOGO_SRC}
+            alt="Coachedby Mentorship"
             width={220}
             height={64}
             className="h-8 w-auto"
@@ -146,7 +146,7 @@ function SidebarContent({
           onClick={onNavigate}
           className="mb-2 block rounded-lg px-3 py-2 text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-stone-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
         >
-          ← Back to Academy
+          ← Back to Mentorship
         </a>
         <form action="/auth/signout" method="post">
           <button

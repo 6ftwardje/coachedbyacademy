@@ -70,7 +70,7 @@ ook goed werken met server-side rendering.
 3. Zet het onderwerp op:
 
 ```text
-Je toegang tot CoachedBy Academy
+Je toegang tot Coachedby Mentorship
 ```
 
 4. Plak de HTML uit:

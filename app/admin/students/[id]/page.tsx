@@ -105,7 +105,7 @@ export default async function AdminStudentDetailPage({
 
             <section className="cb-panel p-6" aria-labelledby="summary-heading">
               <h2 id="summary-heading" className="cb-section-title">
-                Academy progress
+                Mentorship progress
               </h2>
               <p className="cb-body mt-2 max-w-prose">
                 Lessons completed across all published modules, and how many module exams have been

@@ -23,7 +23,7 @@ export function AdminDangerZone({ studentId, studentLabel }: { studentId: string
           confirmMessage={`Mark ALL published lessons as watched for ${studentLabel}? This does not pass exams or create exam results.`}
         >
           <button type="submit" className="cb-btn border border-amber-600/40 bg-amber-500/15 text-sm font-bold text-amber-950 dark:text-amber-50">
-            Mark all lessons complete (academy-wide)
+            Mark all lessons complete (mentorship-wide)
           </button>
         </ConfirmForm>
         <ConfirmForm
@@ -31,7 +31,7 @@ export function AdminDangerZone({ studentId, studentLabel }: { studentId: string
           confirmMessage={`DELETE all lesson progress rows for ${studentLabel}? Exam results stay unchanged. This cannot be undone from here.`}
         >
           <button type="submit" className="cb-btn border border-red-600/50 bg-red-600/15 text-sm font-bold text-red-900 dark:text-red-100">
-            Reset all lesson progress (academy-wide)
+            Reset all lesson progress (mentorship-wide)
           </button>
         </ConfirmForm>
       </div>

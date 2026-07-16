@@ -26,7 +26,7 @@ export function StudentModuleAccessPanel({
             No selection follows the student&apos;s access level
             {accessLevel >= 2
               ? " (all modules). "
-              : " (standard academy progression). "}
+              : " (standard mentorship progression). "}
             Select one or more modules to override that and show only those
             modules.
           </p>

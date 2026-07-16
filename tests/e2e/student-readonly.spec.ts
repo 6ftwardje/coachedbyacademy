@@ -69,7 +69,7 @@ test("dashboard defers Mux media until the student starts the intro", async ({
   await page.goto("/dashboard");
 
   const playIntro = page.getByRole("button", {
-    name: "Speel Introductie tot Coachedby Academy",
+    name: "Speel Introductie tot Coachedby Mentorship",
   });
   await expect(playIntro).toBeVisible();
 

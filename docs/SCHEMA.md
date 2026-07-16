@@ -1,4 +1,4 @@
-# CoachedBy Academy – Schema Overview
+# Coachedby Mentorship – Schema Overview
 
 ## 1. Full SQL migration
 
@@ -47,7 +47,7 @@ Together: **modules** and **lessons** define the curriculum; **exams** and **exa
 
 ## 3. Intentionally left out (for simplicity)
 
-These were excluded from the CoachedBy Academy schema as requested:
+These were excluded from the Coachedby Mentorship schema as requested:
 
 - **updates** – No dedicated “updates” or announcements table.
 - **update_reads** – No read-tracking for updates.

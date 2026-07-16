@@ -39,7 +39,7 @@ export default function UpdatePasswordForm() {
     }
 
     setStatus("success");
-    setMessage("Je wachtwoord is gewijzigd. Je kunt terug naar de academy.");
+    setMessage("Je wachtwoord is gewijzigd. Je kunt terug naar de mentorship.");
   }
 
   return (
@@ -90,7 +90,7 @@ export default function UpdatePasswordForm() {
 
       {status === "success" ? (
         <a href="/dashboard" className="cb-btn cb-btn-primary w-full">
-          Naar de academy
+          Naar de mentorship
         </a>
       ) : (
         <button

@@ -1,5 +1,5 @@
 -- Per-student module visibility overrides.
--- No rows for a student means the standard academy progression remains active.
+-- No rows for a student means the standard mentorship progression remains active.
 -- One or more rows means the student can only see/access those modules.
 
 create table if not exists public.student_module_access (

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ACADEMY_LOGO_SRC } from "@/lib/brand";
+import { PLATFORM_LOGO_SRC } from "@/lib/brand";
 
 type AuthMode = "login" | "register" | "reset";
 type FormStatus = "idle" | "loading" | "success" | "error";
@@ -223,8 +223,8 @@ function AuthForm() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,color-mix(in_oklab,var(--muted)_28%,transparent),transparent_38%),radial-gradient(circle_at_90%_85%,color-mix(in_oklab,var(--foreground)_12%,transparent),transparent_42%)]" />
           <div className="relative">
             <Image
-              src={ACADEMY_LOGO_SRC}
-              alt="CoachedBy Academy"
+              src={PLATFORM_LOGO_SRC}
+              alt="Coachedby Mentorship"
               width={250}
               height={72}
               className="h-16 w-auto"
@@ -233,7 +233,7 @@ function AuthForm() {
           </div>
           <div className="relative max-w-lg">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-[var(--muted)]">
-              CoachedBy Academy
+              Coachedby Mentorship
             </p>
             <h1 className="text-5xl font-extrabold uppercase leading-[0.98] tracking-[-0.04em] text-[var(--foreground)]">
               Groei verder als coach.
@@ -247,8 +247,8 @@ function AuthForm() {
         <section className="flex items-center justify-center px-5 py-10 sm:px-10">
           <div className="w-full max-w-md">
             <Image
-              src={ACADEMY_LOGO_SRC}
-              alt="CoachedBy Academy"
+              src={PLATFORM_LOGO_SRC}
+              alt="Coachedby Mentorship"
               width={220}
               height={64}
               className="mb-10 h-14 w-auto lg:hidden"
@@ -269,7 +269,7 @@ function AuthForm() {
               {mode === "login"
                 ? "Gebruik het e-mailadres en wachtwoord waarmee je je hebt geregistreerd."
                 : mode === "register"
-                  ? "Registreer je eenmalig om toegang te krijgen tot de academy."
+                  ? "Registreer je eenmalig om toegang te krijgen tot de mentorship."
                   : "We sturen je een beveiligde link om een nieuw wachtwoord te kiezen."}
             </p>
 

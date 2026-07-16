@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarNavItem } from "@/components/SidebarNavItem";
 import { PageLoadOverlay } from "@/components/PageLoadOverlay";
-import { ACADEMY_LOGO_SRC } from "@/lib/brand";
+import { PLATFORM_LOGO_SRC } from "@/lib/brand";
 
 const adminNavItem = {
   href: "/admin",
@@ -97,8 +97,8 @@ function SidebarContent({
           className="inline-flex items-center gap-2 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--foreground)_25%,transparent)]"
         >
           <Image
-            src={ACADEMY_LOGO_SRC}
-            alt="CoachedBy Academy"
+            src={PLATFORM_LOGO_SRC}
+            alt="Coachedby Mentorship"
             width={220}
             height={64}
             className="h-8 w-auto"
@@ -269,8 +269,8 @@ export function AppShell({
           </button>
           <Link href="/dashboard" className="inline-flex items-center">
             <Image
-              src={ACADEMY_LOGO_SRC}
-              alt="CoachedBy Academy"
+              src={PLATFORM_LOGO_SRC}
+              alt="Coachedby Mentorship"
               width={220}
               height={64}
               className="h-7 w-auto"

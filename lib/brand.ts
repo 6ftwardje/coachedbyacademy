@@ -1,1 +1,1 @@
-export const ACADEMY_LOGO_SRC = "/coachedbyclub_sitelogo.png";
+export const PLATFORM_LOGO_SRC = "/coachedbyclub_sitelogo_v2.png";

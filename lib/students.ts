@@ -69,7 +69,7 @@ export const getCurrentStudent = cache(async function getCurrentStudent(): Promi
 
 /**
  * Returns the current student, creating one if missing (bootstrap).
- * New students start with access to all academy modules.
+ * New students start with access to all mentorship modules.
  */
 export const ensureCurrentStudent = cache(async function ensureCurrentStudent(): Promise<{
   student: Student | null;

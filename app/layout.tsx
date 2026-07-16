@@ -10,7 +10,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "CoachedBy Academy",
+  title: "Coachedby Mentorship",
   description: "Opleidingsplatform voor coaches",
 };
 

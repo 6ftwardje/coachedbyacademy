@@ -336,7 +336,7 @@ export default async function LessonPage({ params }: Props) {
       <div>
         <PageHeader
           breadcrumbs={[
-            { label: "Academy", href: "/modules" },
+            { label: "Mentorship", href: "/modules" },
             { label: moduleData.title, href: `/modules/${moduleData.slug}` },
             { label: "Les" },
           ]}
@@ -510,7 +510,7 @@ export default async function LessonPage({ params }: Props) {
     <div>
       <PageHeader
         breadcrumbs={[
-          { label: "Academy", href: "/modules" },
+          { label: "Mentorship", href: "/modules" },
           { label: moduleData.title, href: `/modules/${moduleData.slug}` },
           { label: lesson.title },
         ]}

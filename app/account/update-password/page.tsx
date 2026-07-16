@@ -2,7 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import UpdatePasswordForm from "@/components/auth/UpdatePasswordForm";
 import { createClient } from "@/lib/supabase/server";
-import { ACADEMY_LOGO_SRC } from "@/lib/brand";
+import { PLATFORM_LOGO_SRC } from "@/lib/brand";
 
 export default async function UpdatePasswordPage() {
   const supabase = await createClient();
@@ -18,8 +18,8 @@ export default async function UpdatePasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-stone-950 px-5 py-10 text-stone-50">
       <section className="w-full max-w-md">
         <Image
-          src={ACADEMY_LOGO_SRC}
-          alt="CoachedBy Academy"
+          src={PLATFORM_LOGO_SRC}
+          alt="Coachedby Mentorship"
           width={220}
           height={64}
           className="mb-10 h-14 w-auto"
@@ -32,7 +32,7 @@ export default async function UpdatePasswordPage() {
           Kies een nieuw wachtwoord
         </h1>
         <p className="mt-3 text-sm leading-6 text-stone-400">
-          Gebruik minimaal 8 tekens. Daarna kun je direct verder in de academy.
+          Gebruik minimaal 8 tekens. Daarna kun je direct verder in de mentorship.
         </p>
         <UpdatePasswordForm />
       </section>

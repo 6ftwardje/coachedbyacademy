@@ -12,6 +12,6 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-  for = "/coachedbyclub_sitelogo.png"
+  for = "/coachedbyclub_sitelogo_v2.png"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"

@@ -15,7 +15,7 @@ export default function AdminRouteError({
       reset={reset}
       title="Admin kon niet geladen worden"
       homeHref="/dashboard"
-      homeLabel="Terug naar Academy"
+      homeLabel="Terug naar Mentorship"
     />
   );
 }

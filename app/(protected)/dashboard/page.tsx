@@ -94,7 +94,7 @@ export default async function DashboardPage() {
         : nextStep.type === "completed"
           ? "Mooi werk. Je hebt alle beschikbare modules doorlopen."
           : "Open de module om verder te gaan met je traject.";
-  const moduleTitle = nextStep.module?.title ?? "Academy";
+  const moduleTitle = nextStep.module?.title ?? "Mentorship";
   const moduleOrder = nextStep.module?.order_index;
   const pct =
     nextStep.totalLessons > 0
@@ -205,7 +205,7 @@ export default async function DashboardPage() {
             <section className="grid gap-6 border-y border-[var(--border)] py-8 lg:grid-cols-[minmax(220px,320px)_minmax(0,680px)] lg:items-center lg:gap-10">
               <div className="max-w-sm">
                 <div className="cb-eyebrow">Start hier</div>
-                <h2 className="mt-2 cb-section-title">Welkom bij de Academy</h2>
+                <h2 className="mt-2 cb-section-title">Welkom bij de Mentorship</h2>
                 <p className="mt-2 cb-caption">
                   Bekijk deze korte introductie voordat je verdergaat met je
                   traject.
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
               <div className="min-w-0 lg:max-w-[680px]">
                 <HomeIntroVideoPlayer
                   playbackId={introVideo.playbackId}
-                  title="Introductie tot Coachedby Academy"
+                  title="Introductie tot Coachedby Mentorship"
                 />
               </div>
             </section>

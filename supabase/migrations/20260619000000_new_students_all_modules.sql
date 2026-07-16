@@ -1,5 +1,5 @@
 -- New students receive all-module access by default.
--- Existing level-1 students keep the standard sequential academy progression.
+-- Existing level-1 students keep the standard sequential mentorship progression.
 
 alter table public.students
   alter column access_level set default 2;

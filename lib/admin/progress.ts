@@ -235,7 +235,7 @@ export async function resetStudentAllLessonProgress(
   return { error: null };
 }
 
-/** Mark all published lessons in the academy as watched. Does not affect exam_results. */
+/** Mark all published lessons in the mentorship as watched. Does not affect exam_results. */
 export async function markStudentAcademyLessonsComplete(
   studentId: string
 ): Promise<{ error: string | null }> {

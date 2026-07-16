@@ -1,4 +1,4 @@
--- CoachedBy Academy – PostgreSQL schema
+-- Coachedby Mentorship – PostgreSQL schema
 -- Learning platform for coaches: modules, lessons, exams, progress.
 
 create extension if not exists pgcrypto;

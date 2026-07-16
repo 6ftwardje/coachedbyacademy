@@ -62,7 +62,7 @@ export default async function AccountPage() {
             {student?.access_level ?? 1}
           </div>
           <p className="mt-1 cb-caption">
-            Je toegangsniveau binnen de Academy.
+            Je toegangsniveau binnen de Mentorship.
           </p>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--background)_92%,var(--muted)_8%)] p-5">
@@ -79,10 +79,10 @@ export default async function AccountPage() {
   return (
     <div>
       <PageHeader
-        breadcrumbs={[{ label: "Academy", href: "/modules" }, { label: "Profiel" }]}
+        breadcrumbs={[{ label: "Mentorship", href: "/modules" }, { label: "Profiel" }]}
         eyebrow="Profiel"
         title="Jouw profiel"
-        description="Je persoonlijke gegevens en toegang tot de Academy."
+        description="Je persoonlijke gegevens en toegang tot de Mentorship."
       />
       <AppPageLayout main={main} rail={rail} />
     </div>
